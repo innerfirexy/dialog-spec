@@ -5,6 +5,9 @@
 library(data.table)
 library(ggplot2)
 library(lme4)
+library(MASS)
+library(pracma)
+
 
 ##
 # experiment with toy data
@@ -96,6 +99,10 @@ dt.ent_raw_diff = dt.ent_raw_minmax[, {
 setkey(dt, observation)
 dt.ent_raw_diff = dt.ent_raw_diff[unique(dt[,.(observation, resultSize)]),]
 
+
+
+##########
+#
 # read the dataset that contains pathdev info
 dt.dev = fread('moves_and_deviation.csv')
 setnames(dt.dev, "Observation", "observation")
@@ -111,7 +118,6 @@ m1 = lm(pathdev ~ maxFreqF + minFreqF + maxFreqG + minFreqG + maxDiff + minDiff,
 summary(m1)
 # maxDiff: t = 2.196  p = 0.0302 *
 # stepwise to select variables
-library(MASS)
 step = stepAIC(m1, direction='both')
 step$anova
 # maxDiff is left
@@ -173,3 +179,262 @@ t.test(dt.ent_raw[who=='f', spec], dt.ent_raw[who=='g', spec]) # t = 9.8647, f >
 
 summary(lmer(spec ~ who + (1|observation), dt.ent_smooth1)) # t = -24.22 (whog)
 t.test(dt.ent_smooth1[who=='f', spec], dt.ent_smooth1[who=='g', spec]) # t = 18.91, f > g
+
+
+
+#######
+# compute the area under curve (AUV) for spectral plots
+# and then compute the ratio of the common area (power spectral overlap, PSO)
+
+# examine whether the freq series of f and f are identical for each observation
+dt.test = dt.ent_raw[, identical(freq[who=='f'], freq[who=='g']), by = observation]
+# summary(dt.test$V1)
+# Mode   FALSE    TRUE    NA's
+# logical     118      10       0
+
+dt.ent_pso = dt.ent_raw[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[which(!is.na(approx_g$y))]
+        y_out_g = approx_g$y[which(!is.na(approx_g$y))]
+        x_out_f = x_out[which(!is.na(approx_f$y))]
+        y_out_f = approx_f$y[which(!is.na(approx_f$y))]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[which(!is.na(y_min))]
+        y_min = y_min[which(!is.na(y_min))]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO, AUVg = AUV_g, AUVf = AUV_f, AUVmin = AUV_min)
+    }, by = observation]
+
+# join with dt.dev
+dt.ent_pso = dt.ent_pso[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+# models
+m5 = lm(pathdev ~ PSO + AUVf + AUVg + AUVmin, dt.ent_pso)
+summary(m5)
+
+m6 = lm(pathdev ~ PSO, dt.ent_pso)
+summary(m6)
+
+
+
+########
+# apply PSO method on sentence length
+dt.len_raw = dt[, {
+        specval = spec.pgram(tokenNum, taper=0, log="no")
+        .(spec = specval$spec, freq = specval$freq)
+    }, by = .(observation, who)]
+
+dt.len_pso = dt.len_raw[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[which(!is.na(approx_g$y))]
+        y_out_g = approx_g$y[which(!is.na(approx_g$y))]
+        x_out_f = x_out[which(!is.na(approx_f$y))]
+        y_out_f = approx_f$y[which(!is.na(approx_f$y))]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[which(!is.na(y_min))]
+        y_min = y_min[which(!is.na(y_min))]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO, AUVg = AUV_g, AUVf = AUV_f, AUVmin = AUV_min)
+    }, by = observation]
+
+dt.len_pso = dt.len_pso[dt.dev, nomatch=0]
+
+m1 = lm(pathdev ~ PSO, dt.len_pso)
+summary(m1)
+# t = 2.413, p = 0.01743 * , Adjusted R-squared:  0.04058
+
+m = lm(acknowledge ~ PSO, dt.len_pso)
+summary(m)
+# 2.550   0.0121 *
+
+m = lm(check ~ PSO, dt.len_pso)
+summary(m)
+# 4.086 8.23e-05 ***
+
+m = lm(clarify ~ PSO, dt.len_pso)
+summary(m)
+# 2.179   0.0314 *
+
+m = lm(explain ~ PSO, dt.len_pso)
+summary(m)
+# 4.828 4.35e-06 ***
+
+m = lm(instruct ~ PSO, dt.len_pso)
+summary(m)
+# 2.352   0.0204 *
+
+m = lm(query_w ~ PSO, dt.len_pso)
+summary(m)
+# 3.102  0.00243 **
+
+m = lm(query_yn ~ PSO, dt.len_pso)
+summary(m)
+# 2.648  0.00925 **
+
+m = lm(ready ~ PSO, dt.len_pso)
+summary(m)
+# 2.176   0.0316 *
+
+m = lm(reply_n ~ PSO, dt.len_pso)
+summary(m)
+# 3.612 0.000455 ***
+
+m = lm(reply_w ~ PSO, dt.len_pso)
+summary(m)
+# 4.067 8.83e-05 ***
+
+m = lm(reply_y ~ PSO, dt.len_pso)
+summary(m)
+# 2.437  0.01638 *
+
+m = lm(TotalMoves ~ PSO, dt.len_pso)
+summary(m)
+# 3.554 0.000555 ***
+
+m = lm(struc.rep ~ PSO, dt.len_pso)
+summary(m)
+# n.s.
+
+m = lm(struc.rep.norm ~ PSO, dt.len_pso)
+summary(m)
+# n.s.
+
+m = lm(align.1 ~ PSO, dt.len_pso)
+summary(m)
+# n.s.
+
+m = lm(align.norm ~ PSO, dt.len_pso)
+summary(m)
+# n.s.
+
+
+
+########
+# read `ent_swbd` column from db
+require(RMySQL)
+# ssh yvx5085@brain.ist.psu.edu -i ~/.ssh/id_rsa -L 1234:localhost:3306
+conn = dbConnect(MySQL(), host = '127.0.0.1', user = 'yang', port = 1234, password = "05012014", dbname = 'map')
+sql = 'select observation, utterID, who, ent_swbd from utterances'
+df.db = dbGetQuery(conn, sql)
+dt.db = data.table(df.db
+# save
+saveRDS(dt.db, 'map.dt.ent_swbd.rds')
+# read
+dt.db = readRDS('map.dt.ent_swbd.rds')
+
+
+setkey(dt.db, observation, who)
+dt.ent_swbd = dt.db[, {
+        if (.N > 0) {
+            specval = spec.pgram(ent_swbd, taper=0, log="no")
+            .(spec = specval$spec, freq = specval$freq)
+        }
+    }, by = .(observation, who)]
+
+dt.ent_swbd_pso = dt.ent_swbd[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[which(!is.na(approx_g$y))]
+        y_out_g = approx_g$y[which(!is.na(approx_g$y))]
+        x_out_f = x_out[which(!is.na(approx_f$y))]
+        y_out_f = approx_f$y[which(!is.na(approx_f$y))]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[which(!is.na(y_min))]
+        y_min = y_min[which(!is.na(y_min))]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO, AUVg = AUV_g, AUVf = AUV_f, AUVmin = AUV_min)
+    }, by = observation]
+
+dt.ent_swbd_pso = dt.ent_swbd_pso[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+m1 = lm(pathdev ~ PSO, dt.ent_swbd_pso)
+summary(m1)
+
+
+
+
+########
+# phase shift experiment
+dt.ent_phase = dt.db[, {
+        y_g = ent_swbd[who=='g']
+        y_f = ent_swbd[who=='f']
+        len = min(length(y_g), length(y_f))
+        y_g = y_g[1:len]
+        y_f = y_f[1:len]
+        comb.ts = ts(matrix(c(y_g, y_f), ncol=2))
+        spec = spectrum(comb.ts, detrend=FALSE)
+        # phase
+        phaseShift = spec$phase[,1]
+        meanPhaseShift = mean(phaseShift)
+        # squared coherency
+        coh = spec$coh[,1]
+        meanCoh = mean(coh)
+        # phase shift at max spec
+        maxPS_g = spec$phase[,1][which(spec$spec[,1]==max(spec$spec[,1]))]
+        maxPS_f = spec$phase[,1][which(spec$spec[,2]==max(spec$spec[,2]))]
+        maxPS = mean(maxPS_g + maxPS_f)
+        # phase shift at all peaks
+        i_max_g = which(diff(sign(diff(spec$spec[,1])))<0) + 1
+        i_max_f = which(diff(sign(diff(spec$spec[,2])))<0) + 1
+        peaksPS = mean(c(spec$phase[,1][i_max_g], spec$phase[,1][i_max_f]))
+        # return
+        .(phaseShift = phaseShift, meanPhaseShift = rep(meanPhaseShift, length(phaseShift)),
+            coh = coh, meanCoh = rep(meanCoh, length(coh)), maxPS = maxPS, peaksPS = peaksPS)
+    }, by = observation]
+
+dt.ent_phase = dt.ent_phase[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+m1 = lm(pathdev ~ phaseShift, dt.ent_phase)
+summary(m1)
+# -1.103    0.272
+# -1.081     0.28
+
+m = lm(pathdev ~ abs(maxPS), dt.ent_phase)
+summary(m)
+# 3.263  0.00111 **,  Adjusted R-squared:  0.001758
+
+m = lm(pathdev ~ abs(peaksPS), dt.ent_phase)
+summary(m)
+# 2.672  0.00756 **,  Adjusted R-squared:  0.00112
+
+# survey
+summary(abs(dt.ent_phase$maxPS)) # mean = 1.5 == pi/2
+summary(abs(dt.ent_phase$peaksPS)) # mean = .313
