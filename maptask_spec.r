@@ -352,7 +352,7 @@ dt.db = readRDS('map.dt.ent_swbd.rds')
 setkey(dt.db, observation, who)
 dt.ent_swbd = dt.db[, {
         if (.N > 0) {
-            specval = spec.pgram(ent_swbd, taper=0, log="no")
+            specval = spec.pgram(ent_swbd, taper=0)
             .(spec = specval$spec, freq = specval$freq)
         }
     }, by = .(observation, who)]
@@ -387,54 +387,95 @@ dt.ent_swbd_pso = dt.ent_swbd_pso[dt.dev[, .(observation, pathdev)], nomatch=0]
 
 m1 = lm(pathdev ~ PSO, dt.ent_swbd_pso)
 summary(m1)
-
+# 2.602   0.0105 *
 
 
 
 ########
 # phase shift experiment
-dt.ent_phase = dt.db[, {
+dt.ent_maxPS = dt.db[, {
         y_g = ent_swbd[who=='g']
         y_f = ent_swbd[who=='f']
         len = min(length(y_g), length(y_f))
         y_g = y_g[1:len]
         y_f = y_f[1:len]
         comb.ts = ts(matrix(c(y_g, y_f), ncol=2))
-        spec = spectrum(comb.ts, detrend=FALSE)
-        # phase
-        phaseShift = spec$phase[,1]
-        meanPhaseShift = mean(phaseShift)
-        # squared coherency
-        coh = spec$coh[,1]
-        meanCoh = mean(coh)
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no')
         # phase shift at max spec
         maxPS_g = spec$phase[,1][which(spec$spec[,1]==max(spec$spec[,1]))]
         maxPS_f = spec$phase[,1][which(spec$spec[,2]==max(spec$spec[,2]))]
-        maxPS = mean(maxPS_g + maxPS_f)
-        # phase shift at all peaks
-        i_max_g = which(diff(sign(diff(spec$spec[,1])))<0) + 1
-        i_max_f = which(diff(sign(diff(spec$spec[,2])))<0) + 1
-        peaksPS = mean(c(spec$phase[,1][i_max_g], spec$phase[,1][i_max_f]))
         # return
-        .(phaseShift = phaseShift, meanPhaseShift = rep(meanPhaseShift, length(phaseShift)),
-            coh = coh, meanCoh = rep(meanCoh, length(coh)), maxPS = maxPS, peaksPS = peaksPS)
+        .(maxPSg = maxPS_g, maxPSf = maxPS_f)
     }, by = observation]
 
-dt.ent_phase = dt.ent_phase[dt.dev[, .(observation, pathdev)], nomatch=0]
+dt.ent_peakPSg = dt.db[, {
+        y_g = ent_swbd[who=='g']
+        y_f = ent_swbd[who=='f']
+        len = min(length(y_g), length(y_f))
+        y_g = y_g[1:len]
+        y_f = y_f[1:len]
+        comb.ts = ts(matrix(c(y_g, y_f), ncol=2))
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no')
+        # phase shift at all peaks
+        i_max_g = which(diff(sign(diff(spec$spec[,1])))<0) + 1
+        peakPS_g = spec$phase[,1][i_max_g]
+        # return
+        .(peakPSg = peakPS_g, peakPSg_mean = mean(peakPS_g))
+    }, by = observation]
 
-m1 = lm(pathdev ~ phaseShift, dt.ent_phase)
-summary(m1)
-# -1.103    0.272
-# -1.081     0.28
+dt.ent_peakPSf = dt.db[, {
+        y_g = ent_swbd[who=='g']
+        y_f = ent_swbd[who=='f']
+        len = min(length(y_g), length(y_f))
+        y_g = y_g[1:len]
+        y_f = y_f[1:len]
+        comb.ts = ts(matrix(c(y_g, y_f), ncol=2))
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no')
+        # phase shift at all peaks
+        i_max_f = which(diff(sign(diff(spec$spec[,2])))<0) + 1
+        peakPS_f = spec$phase[,1][i_max_f]
+        # return
+        .(peakPSf = peakPS_f, peakPSf_mean = mean(peakPS_f))
+    }, by = observation]
 
-m = lm(pathdev ~ abs(maxPS), dt.ent_phase)
+dt.ent_maxPS = dt.ent_maxPS[dt.dev[, .(observation, pathdev)], nomatch=0]
+dt.ent_peakPSg = dt.ent_peakPSg[dt.dev[, .(observation, pathdev)], nomatch=0]
+dt.ent_peakPSf = dt.ent_peakPSf[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+# models
+m = lm(pathdev ~ abs(maxPSg), dt.ent_maxPS)
 summary(m)
-# 3.263  0.00111 **,  Adjusted R-squared:  0.001758
+# -1.861   0.0653 .
 
-m = lm(pathdev ~ abs(peaksPS), dt.ent_phase)
+m = lm(pathdev ~ abs(maxPSf), dt.ent_maxPS)
 summary(m)
-# 2.672  0.00756 **,  Adjusted R-squared:  0.00112
+# n.s.
+m = lm(pathdev ~ maxPSf, dt.ent_maxPS) # ??
+summary(m)
+# -2.741  0.00712 **
+
+
+m = lm(pathdev ~ abs(peakPSg), dt.ent_peakPSg)
+summary(m)
+# n.s.
+
+m = lm(pathdev ~ abs(peakPSf), dt.ent_peakPSf)
+summary(m)
+# -2.25   0.0246 *
+m = lm(pathdev ~ peakPSf, dt.ent_peakPSf)
+summary(m)
+# -2.101   0.0358 *
+
+m = lm(pathdev ~ abs(peakPSg_mean), unique(dt.ent_peakPSg[,c(1,3,4), with=F]))
+summary(m)
+# -1.68   0.0957 .
+
+m = lm(pathdev ~ abs(peakPSf_mean), unique(dt.ent_peakPSf[,c(1,3,4), with=F]))
+summary(m)
+# n.s.
+m = lm(pathdev ~ peakPSf_mean, unique(dt.ent_peakPSf[,c(1,3,4), with=F]))
+summary(m)
+# -2.071   0.0407 *
+
 
 # survey
-summary(abs(dt.ent_phase$maxPS)) # mean = 1.5 == pi/2
-summary(abs(dt.ent_phase$peaksPS)) # mean = .313
