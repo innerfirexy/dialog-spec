@@ -158,11 +158,98 @@ summary(m) # n.s.
 m = lm(wmf_g ~ PSO, dt.ent_swbd_pso)
 summary(m)
 # -2.521   0.0131 *
+##
 # When PSO is high (larger spectral overlap), the frequency of givers is relatively lower
 # corresponding to the slower change of entropy (grounding)
+
+m = lm(abs(wmf_f - wmf_g) ~ PSO, dt.ent_swbd_pso)
+summary(m)
+# -2.404   0.0178 *
+
+m = lm(pathdev ~ PSO + abs(wmf_f - wmf_g), dt.ent_swbd_pso)
+summary(m)
+step = stepAIC(m)
+step$anova
+# final model:
+# pathdev ~ PSO
+
 
 m = lm(wmf_g ~ wmf_f, dt.ent_swbd_pso)
 summary(m) # n.s.
 t.test(dt.ent_swbd_pso$wmf_g, dt.ent_swbd_pso$wmf_f)
 # t = 6.9067 ***
 # givers have higher frequency than followers
+
+
+
+####
+# the relationship between PSO and other annotations
+dt.ent_swbd_pso_full = dt.ent_swbd_pso[dt.dev, nomatch=0]
+
+m = lm(acknowledge ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 2.275   0.0248 *
+
+m = lm(check ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 3.792 0.000242 ***
+
+m = lm(clarify ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 1.586   0.1155
+
+m = lm(explain ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 4.265 4.16e-05 ***
+
+m = lm(instruct ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 1.882   0.0624 .
+
+m = lm(query_w ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 2.993  0.00339 **
+
+m = lm(query_yn ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 2.832  0.00548 **
+
+m = lm(ready ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 2.070   0.0408 *
+
+m = lm(reply_n ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 3.414 0.000891 ***
+
+m = lm(reply_w ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 4.021 0.000105 ***
+
+m = lm(reply_y ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 2.464   0.0153 *
+
+m = lm(TotalMoves ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# 3.281  0.00138 **
+
+m = lm(struc.rep ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# n.s.
+# -1.359    0.177
+
+m = lm(struc.rep.norm ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# n.s.
+# -0.815    0.417
+
+m = lm(align.1 ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# n.s.
+# 0.033  0.97412
+
+m = lm(align.norm ~ PSO, dt.ent_swbd_pso_full)
+summary(m)
+# n.s.
+# -1.238    0.218
