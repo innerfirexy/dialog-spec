@@ -31,9 +31,9 @@ def process_file(in_file, out_file):
 
         # write to out_file
         for text in a_text:
-            outfile.write('A, ' + text + '\n')
+            outfile.write(','.join(['A', text, str(len(text.split()))]) + '\n')
         for text in b_text:
-            outfile.write('B, ' + text + '\n')
+            outfile.write(','.join(['B', text, str(len(text.split()))]) + '\n')
 
 
 # main
