@@ -38,7 +38,7 @@ def process_file(in_file, out_file):
 
 # main
 if __name__ == '__main__':
-    input_folder = '/Users/yangxu/Documents/Danish_MapTask/'
+    input_folder = '/Users/yangxu/Documents/Danish_JointDecisionTask/'
     output_folder = 'data/'
 
     input_files = glob.glob(input_folder + 'Pair*.tsv')
