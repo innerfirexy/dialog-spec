@@ -43,6 +43,68 @@ def survey_uttlen():
 
 
 ##
+# split the sequence of utterance into evenly distributed segments
+def split_utt(tree, delta=1):
+    '''
+    tree: an lxml.etree object parsed from a time-unit xml file
+    delta: the length of segment, default = 1 second
+    '''
+    tustream = tree.getroot()
+    segments = []
+    i = 0
+    while i < len(tustream):
+        unit = tustream[i]
+        # handle the last unit
+        if i == len(tustream)-1:
+            if unit.tag == 'tu' and unit.text != '':
+                segments.append((unit.text))
+        # for units in the middle
+        seg = []
+        if unit.tag == 'tu' and unit.text != '':
+            seg.append(unit.text)
+        begintime = float(unit.get('start'))
+        for j in range(i+1, len(tustream)):
+            u = tustream[j]
+            btime = float(u.get('start'))
+            etime = float(u.get('end'))
+            mtime = (btime + etime) / 2
+            if mtime - begintime > delta:
+                i = j
+                break
+            else:
+                if u.tag == 'tu' and u.text != '':
+                    seg.append(u.text)
+                if j == len(tustream)-1:
+                    i = j+1
+        if len(seg)>0:
+            segments.append(tuple(seg))
+    # return
+    return segments
+
+##
+# todo:
+# remove 's--', 'th--', etc.
+# split "it's", "we're" etc.
+# indicate the start of utternace
+
+
+# experiment with split_utt
+def split_utt_exp():
+    data_folder = '/Users/yangxu/Documents/HCRC Map Task Corpus/maptask/maptask-xml/'
+    tu_files = glob.glob(data_folder + '*.timed-units.xml')
+
+    tuf = '/Users/yangxu/Documents/HCRC Map Task Corpus/maptask/maptask-xml/q7ec5.g.timed-units.xml'
+    segments = split_utt(etree.parse(tuf))
+
+    resfile = 'model-data/' + re.search(r'q[a-z0-9]+\.[f|g]\..+\.', tuf).group(0) + 'seg.txt'
+    with open(resfile, 'w') as fw:
+        for row in segments:
+            fw.write(' '.join(row) + '\n')
+
+
+##
 # main
 if __name__ == '__main__':
-    survey_uttlen()
+    # survey_uttlen()
+
+    split_utt_exp()
