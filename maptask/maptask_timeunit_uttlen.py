@@ -11,6 +11,7 @@ import re
 
 import pandas as pd
 import numpy as np
+from nltk.probability import FreqDist
 
 
 # survey the utterance lengths
@@ -54,17 +55,35 @@ def split_utt(tree, delta=1):
     i = 0
     while i < len(tustream):
         unit = tustream[i]
-        # handle the last unit
-        if i == len(tustream)-1:
-            if unit.tag == 'tu' and unit.text != '':
-                segments.append((unit.text))
+        # check the tag, and skip 'noi' and 'sil' units
+        if unit.tag != 'tu':
+            i += 1
+            continue
+        ## process 'tu' units only
+        # for the last unit
+        if i == len(tustream)-1 and unit.text != '':
+            beginutt = unit.get('utt')
+            beginutt = 0 if beginutt is None else int(beginutt)
+            endutt = beginutt
+            segments.append((tuple(unit.text), beginutt, endutt))
+            break
+
         # for units in the middle
         seg = []
-        if unit.tag == 'tu' and unit.text != '':
-            seg.append(unit.text)
         begintime = float(unit.get('start'))
+        beginutt = unit.get('utt')
+        beginutt = 0 if beginutt is None else int(beginutt)
+        endutt = beginutt
+
+        if unit.text != '':
+            seg.append(unit.text)
         for j in range(i+1, len(tustream)):
             u = tustream[j]
+            # skip non-tu units
+            if u.tag != 'tu':
+                i = j+1
+                break
+            # for tu units
             btime = float(u.get('start'))
             etime = float(u.get('end'))
             mtime = (btime + etime) / 2
@@ -72,12 +91,14 @@ def split_utt(tree, delta=1):
                 i = j
                 break
             else:
-                if u.tag == 'tu' and u.text != '':
+                if u.text != '':
                     seg.append(u.text)
+                    endutt = 0 if u.get('utt') is None else int(u.get('utt'))
                 if j == len(tustream)-1:
                     i = j+1
+
         if len(seg)>0:
-            segments.append(tuple(seg))
+            segments.append((tuple(seg), beginutt, endutt))
     # return
     return segments
 
@@ -93,13 +114,45 @@ def split_utt_exp():
     data_folder = '/Users/yangxu/Documents/HCRC Map Task Corpus/maptask/maptask-xml/'
     tu_files = glob.glob(data_folder + '*.timed-units.xml')
 
-    tuf = '/Users/yangxu/Documents/HCRC Map Task Corpus/maptask/maptask-xml/q7ec5.g.timed-units.xml'
-    segments = split_utt(etree.parse(tuf))
+    for i, tuf in enumerate(tu_files):
+        # tuf = '/Users/yangxu/Documents/HCRC Map Task Corpus/maptask/maptask-xml/q7ec5.g.timed-units.xml'
+        try:
+            segments = split_utt(etree.parse(tuf), delta=1)
+        except Exception as e:
+            print('file name:')
+            print(tuf)
+            raise
+        else:
+            resfile = 'model-data/even-time/' + re.search(r'q[a-z0-9]+\.[f|g]\..+\.', tuf).group(0) + 'seg.txt'
+            with open(resfile, 'w') as fw:
+                for row in segments:
+                    fw.write(' '.join(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\n')
+        sys.stdout.write('\r{}/{} processed'.format(i+1, len(tu_files)))
+        sys.stdout.flush()
 
-    resfile = 'model-data/' + re.search(r'q[a-z0-9]+\.[f|g]\..+\.', tuf).group(0) + 'seg.txt'
-    with open(resfile, 'w') as fw:
-        for row in segments:
-            fw.write(' '.join(row) + '\n')
+
+# examine the results files
+# in model-data/even-time
+def examine_eventime_res():
+    resfiles = glob.glob('model-data/even-time/*.txt')
+
+    lexicons = []
+    for resf in resfiles:
+        with open(resf, 'r') as fr:
+            for line in fr:
+                words = line.split('\t')[0]
+                for w in words.split():
+                    lexicons.append(w)
+    # count the occurrences of '-'
+    count_dash = FreqDist()
+    for w in lexicons:
+        if '-' in w:
+            count_dash[w] += 1
+    # count single quote
+    count_quote = FreqDist()
+    for w in lexicons:
+        if "\'" in w:
+            count_quote[w] += 1
 
 
 ##
