@@ -62,10 +62,12 @@ def split_utt(tree, delta=1):
         ## process 'tu' units only
         # for the last unit
         if i == len(tustream)-1 and unit.text != '':
+            if '--' in unit.text:
+                break
             beginutt = unit.get('utt')
             beginutt = 0 if beginutt is None else int(beginutt)
             endutt = beginutt
-            segments.append((tuple(unit.text), beginutt, endutt))
+            segments.append((tuple(sp_quote(unit.text)), beginutt, endutt))
             break
 
         # for units in the middle
@@ -97,8 +99,16 @@ def split_utt(tree, delta=1):
                 if j == len(tustream)-1:
                     i = j+1
 
-        if len(seg)>0:
-            segments.append((tuple(seg), beginutt, endutt))
+        # filter out the words that contain '--', and process single quote
+        seg = [w for w in seg if '--' not in w]
+        seg_new = []
+        for word in seg:
+            ws = sp_quote(word)
+            for w in ws:
+                seg_new.append(w)
+
+        if len(seg_new)>0:
+            segments.append((tuple(seg_new), beginutt, endutt))
     # return
     return segments
 
@@ -106,7 +116,17 @@ def split_utt(tree, delta=1):
 # todo:
 # remove 's--', 'th--', etc.
 # split "it's", "we're" etc.
-# indicate the start of utternace
+
+# the func that split a word if it contains single quote
+def sp_quote(word):
+    if "\'" in word:
+        ind = word.index("\'")
+        if ind == 0 or ind == len(word)-1:
+            return [word]
+        else:
+            return [word[:ind], word[ind:]]
+    else:
+        return [word]
 
 
 # experiment with split_utt
@@ -135,7 +155,6 @@ def split_utt_exp():
 # in model-data/even-time
 def examine_eventime_res():
     resfiles = glob.glob('model-data/even-time/*.txt')
-
     lexicons = []
     for resf in resfiles:
         with open(resf, 'r') as fr:
@@ -153,6 +172,11 @@ def examine_eventime_res():
     for w in lexicons:
         if "\'" in w:
             count_quote[w] += 1
+    # check how many single quotes are there at most
+    for key in count_quote.keys():
+        if key.count("\'") > 1:
+            print(key)
+    # it turns out that no word contains more than 1 single quote
 
 
 ##
