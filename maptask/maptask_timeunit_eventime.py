@@ -8,6 +8,8 @@ from lxml import etree
 import sys
 import glob
 import re
+import subprocess
+import MySQLdb
 
 import pandas as pd
 import numpy as np
@@ -180,14 +182,49 @@ def examine_eventime_res():
 
 
 ###
-# 
+# get training sentences from Switchboard and train the language model usring srilm
+def trainLM():
+    conn = db_conn('swbd')
+    cursor = conn.cursor()
+
+    # select sentences from db
+    sql = 'select rawWord from entropy where rawWord <> \"\"'
+    cursor.execute(sql)
+    sents = [row[0].lower() for row in cursor.fetchall()]
+    print('selecting done')
+
+    # save sentences into file
+    sents_file = 'model-data/training_sentences_swbd.txt'
+    with open(sents_file, 'w') as fw:
+        for s in sents:
+            fw.write(s + '\n')
+    print('saving done')
+
+    # train langauge model
+    lm_file = sents_file[:-3] + 'lm'
+    srilm_dir = '/Users/yangxu/projects/srilm-1.7.1/bin/macosx/'
+    train_cmd = [srilm_dir + 'ngram-count', '-order', '3', '-text', sents_file, '-lm', lm_file]
+    return_code = subprocess.check_call(train_cmd)
+    if return_code != 0:
+        print('train failure')
+        exit()
+    print('training done')
 
 
+# get db connection
+def db_conn(db_name):
+    # db init: ssh yvx5085@brain.ist.psu.edu -i ~/.ssh/id_rsa -L 1234:localhost:3306
+    conn = MySQLdb.connect(host = "127.0.0.1",
+                    user = "yang",
+                    port = 1234,
+                    passwd = "05012014",
+                    db = db_name)
+    return conn
 
 
 ##
 # main
 if __name__ == '__main__':
     # survey_uttlen()
-
-    split_utt_exp()
+    # split_utt_exp()
+    trainLM()
