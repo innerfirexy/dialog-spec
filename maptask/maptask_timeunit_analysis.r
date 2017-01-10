@@ -22,3 +22,22 @@ plot(density(log(dt.agg$uttTime)))
 p = ggplot(dt.agg, aes(x = 1, y = uttTime)) + geom_boxplot()
 mean(dt.agg$uttTime) # 1.6
 median(dt.agg$uttTime) # 1.036 sec
+
+
+####
+# analyze even-time data
+resfiles = Sys.glob(file.path(paste0(getwd(), '/model-data/even-time/*.txt')))
+# examine how many rows have different V2 and V3 column
+diffnum = 0
+zeronum = 0
+difffiles = c()
+for (rf in resfiles) {
+    dt.tmp = fread(rf)
+    diffnum <<- diffnum + nrow(dt.tmp[V2 != V3 & V2!=0 & V3!=0,])
+    zeronum <<- zeronum + nrow(dt.tmp[V2==0 | V3==0,])
+    if (nrow(dt.tmp[V2 != V3,]) > 0) {
+        difffiles <<- c(difffiles, rf)
+    }
+}
+# diffnum == 0 !this is what we want 
+# zeronum == 3993

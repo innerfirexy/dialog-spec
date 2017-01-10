@@ -88,6 +88,9 @@ def split_utt(tree, delta=1):
                 i = j+1
                 break
             # for tu units
+            if u.get('utt') is not None and int(u.get('utt')) != beginutt:
+                i = j
+                break
             btime = float(u.get('start'))
             etime = float(u.get('end'))
             mtime = (btime + etime) / 2
