@@ -23,7 +23,7 @@ setkey(dt.dev, observation)
 # compute spectral data
 dt.ent_swbd = dt[, {
         if (.N > 0) {
-            specval = spec.pgram(ent_swbd, taper=0, log='no')
+            specval = spec.pgram(ent_swbd, taper=0, log='no', plot=FALSE)
             .(spec = specval$spec, freq = specval$freq)
         }
     }, by = .(observation, who)]
