@@ -58,8 +58,6 @@ if __name__ == '__main__':
     for i, tf in enumerate(test_files):
         result = []
         result_file = results_dir + re.search(r'q.+.txt', tf).group(0).replace('seg', 'res')
-        pp_row = None # the previous row of previous row
-        p_row = None # the previous row
 
         with open(tf, 'r') as fr:
             # preprocess lines
@@ -78,26 +76,61 @@ if __name__ == '__main__':
                         result.append(ent)
                     else:
                         grams = ngram(list(item[1]))
-                        ent = -sum([getTrigramProb(lm, gram) for gram in grams])
+                        ent = -sum([getTrigramProb(lm, gram) for gram in grams]) / float(len(grams))
                         result.append(ent)
-                else if j == len(items)-1:
+                elif j == len(items)-1:
                     if voteUttId(item[2], item[3]) == 0 or voteUttId(items[j-1][2], items[j-1][3]) == 0 or voteUttId(item[2], item[3]) != voteUttId(items[j-1][2], items[j-1][3]):
                         ppl = getSentencePpl(lm, item[0], len(item[1]))
                         ent = math.log(ppl, 10)
                         result.append(ent)
                     else:
+                        words = []
                         grams = []
                         if len(items[j-1][1]) >= 2:
                             words = list(items[j-1][1])[-2:] + list(item[1])
                             grams = ngram(words, pad_left=False)
-                        else if voteUttId(item[2], item[3]) == voteUttId(items[j-2][2], items[j-2][3]):
+                        elif voteUttId(item[2], item[3]) == voteUttId(items[j-2][2], items[j-2][3]):
                             words = [list(items[j-2][1])[-1], items[j-1][0]] + list(item[1])
                             grams = ngram(words, pad_left=False)
                         else:
                             words = [items[j-1][0]] + list(item[1])
                             grams = ngram(words)
+                            del grams[0] # delete first trigram
+                        grams.append(' '.join(words[-2:]) + ' </s>') # append the ending symbol
+                        ent = -sum([getTrigramProb(lm, gram) for gram in grams]) / float(len(grams))
+                        result.append(ent)
                 else:
-                    if # same as previous utt:
-                        pass
-                    else: # same as next utt (treat utt=0 as this case)
-                        pass
+                    # same as previous utt:
+                    if voteUttId(item[2], item[3]) == voteUttId(items[j-1][2], items[j-1][3]) and voteUttId(item[2], item[3]) != 0:
+                        words = []
+                        grams = []
+                        if len(items[j-1][1]) >= 2:
+                            words = list(items[j-1][1])[-2:] + list(item[1])
+                            grams = ngram(words, pad_left=False)
+                        elif j > 2 and voteUttId(item[2], item[3]) == voteUttId(items[j-2][2], items[j-2][3]):
+                            words = [list(items[j-2][1])[-1], items[j-1][0]] + list(item[1])
+                            grams = ngram(words, pad_left=False)
+                        else:
+                            words = [items[j-1][0]] + list(item[1])
+                            grams = ngram(words)
+                            del grams[0]
+                        if voteUttId(item[2], item[3]) != voteUttId(items[j+1][2], items[j+1][3]):
+                            grams.append(' '.join(words[-2:]) + ' </s>')
+                        ent = -sum([getTrigramProb(lm, gram) for gram in grams]) / float(len(grams))
+                        result.append(ent)
+                    elif voteUttId(item[2], item[3]) != 0 and voteUttId(item[2], item[3]) != voteUttId(items[j+1][2], items[j+1][3]):
+                        ppl = getSentencePpl(lm, item[0], len(item[1]))
+                        ent = math.log(ppl, 10)
+                        result.append(ent)
+                    else:
+                        grams = ngram(list(item[1]))
+                        ent = -sum([getTrigramProb(lm, gram) for gram in grams]) / float(len(grams))
+                        result.append(ent)
+
+        # write to result file
+        with open(result_file, 'w') as fw:
+            for rs in result:
+                fw.write(str(rs) + '\n')
+        # print progress
+        sys.stdout.write('\r{}/{} processed'.format(i+1, len(test_files)))
+        sys.stdout.flush()
