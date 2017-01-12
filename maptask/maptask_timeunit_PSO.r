@@ -18,15 +18,15 @@ setnames(dt.dev, "Observation", "observation")
 setnames(dt.dev, 'path dev', 'pathdev')
 setkey(dt.dev, observation)
 
-# construct data table
-for (i in 1:20) {
-    resfiles = Sys.glob(paste0(getwd(), '/model-data/even-time-results/delta', i,'/*.txt'))
+##
+# the function that reads result files of certain delta value
+readResults = function (delta) {
+    resfiles = Sys.glob(paste0(getwd(), '/model-data/even-time-results/delta', delta,'/*.txt'))
     dt = data.table()
-
-    for (rf in resfiles) {
-        dt.tmp = fread(rf)
-        m = regexpr('q[a-z0-9]+\\.[g|f]', rf)
-        str = regmatches(rf, m)
+    for (file in resfiles) {
+        dt.tmp = fread(file)
+        m = regexpr('q[a-z0-9]+\\.[g|f]', file)
+        str = regmatches(file, m)
         names = unlist(strsplit(str, '\\.'))
         dt.tmp$observation = names[1]
         dt.tmp$who = names[2]
@@ -34,6 +34,13 @@ for (i in 1:20) {
     }
     setnames(dt, 'V1', 'entropy')
     setkey(dt, observation, who)
+    dt
+}
+
+# construct data table
+for (i in 1:20) {
+    # read
+    dt = readResults(i)
 
     # analysis
     dt.spec = dt[, {
@@ -114,6 +121,163 @@ dev.off()
 
 #######
 # todo:
-# 1. try different lm training method, e.g. cross-validate
-# 2. using only first half of dialogue
-# 3. other baselines, Reitter2007
+# - try different lm training method, e.g. cross-validate
+# - using only first half of dialogue
+# - other baselines, Reitter200
+# - performance w/o outliers
+
+
+
+#########################
+# examine the effect of "delta" (1 to 20) on segment length and entropy distribution etc.
+#########################
+
+# number of segments (rows in "*.timed-units.seg.txt" files under even-time folder)
+dt.delta_segnum = data.table()
+for (i in 1:20) {
+    segfiles = Sys.glob(paste0(getwd(), '/model-data/even-time/delta', i,'/*.txt'))
+    for (sf in segfiles) {
+        dt.tmp = fread(sf)
+        dt.delta_segnum = rbindlist(list(dt, list(i, nrow(dt.tmp))))
+    }
+}
+setnames(dt.delta_segnum, c('delta', 'segNum'))
+# plot
+p = ggplot(dt.delta_segnum, aes(x = delta, y = segNum)) +
+    stat_summary(fun.data = mean_cl_boot, geom = 'errorbar', width=.2) +
+    stat_summary(fun.y = mean, geom = 'line')
+pdf('plots/segNum_delta.pdf', 5, 5)
+plot(p)
+dev.off()
+
+
+# compare different distributions
+system.time({
+        dt.distr <- data.table()
+        for (i in 1:20) {
+            dt = readResults(i)
+            dt.distr = rbindlist(list(dt.distr, dt))
+        }
+    }) # last 130 sec
+setnames(dt.distr, 'V1', 'entropy')
+# save to rds
+saveRDS(dt.distr, 'model-data/dt.entropy.delta_all.rds')
+
+# plots
+p = ggplot(dt.distr, aes(x = delta, y = entropy)) +
+    stat_summary(fun.data = mean_cl_boot, geom = 'errorbar', width=.2) +
+    stat_summary(fun.y = mean, geom = 'line')
+pdf('plots/entropy_delta.pdf', 5, 5)
+plot(p)
+dev.off()
+
+p = ggplot(dt.distr, aes(x = entropy, group = delta)) +
+    geom_density(aes(color = delta))
+
+
+
+###############################
+# remove outliers in entropy from dt
+###############################
+dt.delta17 = readResults(17)
+summary(dt.delta17$entropy) # 3rd Qu = 2.559
+# boxplot
+p = ggplot(dt.delta17, aes(x=who, y = entropy)) + geom_boxplot(width=.2)
+# mean and sd
+ent.mean = mean(dt.delta17$entropy) # 2.049759
+ent.sd = sd(dt.delta17$entropy) # 1.36094
+
+# get rid of outliers
+dt.delta17.s = dt.delta17[entropy < ent.mean + 2*ent.sd,]
+
+# PSO analysis
+dt.spec = dt.delta17.s[, {
+        specval = spec.pgram(entropy, taper=0, log='no', plot=FALSE)
+        .(spec = specval$spec, freq = specval$freq)
+    }, by = .(observation, who)]
+dt.pso = dt.spec[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[which(!is.na(approx_g$y))]
+        y_out_g = approx_g$y[which(!is.na(approx_g$y))]
+        x_out_f = x_out[which(!is.na(approx_f$y))]
+        y_out_f = approx_f$y[which(!is.na(approx_f$y))]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[which(!is.na(y_min))]
+        y_min = y_min[which(!is.na(y_min))]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO)
+    }, by = observation]
+dt.pso = dt.pso[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+# model
+m = lm(pathdev ~ PSO, dt.pso)
+summary(m)
+## important !! ##
+# when outliers (< mean + 2mu) in entropy are removed, the models are no longer significant!
+#
+
+### explore the above on original sentence-level entropy
+dt.sent = readRDS('map.dt.ent_swbd.rds')
+summary(dt.sent$ent_swbd)
+#  Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+# 1.164   3.264  10.600  16.180  22.820 295.200
+p = ggplot(dt.sent, aes(x=ent_swbd)) + geom_density()
+# handle outliers
+# replace outliers with mean values
+ent.mean = mean(dt.sent$ent_swbd)
+ent.sd = sd(dt.sent$ent_swbd)
+dt.sent.s = dt.sent[,]
+dt.sent.s[ent_swbd > ent.mean + 2*ent.sd, ent_swbd := ent.mean,]
+# reanalysis pso
+dt.spec = dt.sent.s[, {
+        specval = spec.pgram(ent_swbd, taper=0, log='no', plot=FALSE)
+        .(spec = specval$spec, freq = specval$freq)
+    }, by = .(observation, who)]
+dt.pso = dt.spec[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[which(!is.na(approx_g$y))]
+        y_out_g = approx_g$y[which(!is.na(approx_g$y))]
+        x_out_f = x_out[which(!is.na(approx_f$y))]
+        y_out_f = approx_f$y[which(!is.na(approx_f$y))]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[which(!is.na(y_min))]
+        y_min = y_min[which(!is.na(y_min))]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO)
+    }, by = observation]
+dt.pso = dt.pso[dt.dev[, .(observation, pathdev)], nomatch=0]
+# model
+m = lm(pathdev ~ PSO, dt.pso)
+summary(m)
+#####
+# when outliers are removed (ent_swbd < ent.mean + 2*ent.sd)
+# the model is no longer significant
+# How many outliers point??
+nrow(dt.sent[ent_swbd >= ent.mean + 2*ent.sd,])/nrow(dt.sent) # 0.04726038
+# 4.7% of the total data points determine the model's performance?!
