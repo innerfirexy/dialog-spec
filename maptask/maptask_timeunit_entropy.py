@@ -53,8 +53,10 @@ if __name__ == '__main__':
     readLM(lm, lm_file)
 
     # compute
-    test_files = glob.glob('model-data/even-time/*.txt')
-    results_dir = 'model-data/even-time-results/'
+    test_files = glob.glob('model-data/even-time/delta' + sys.argv[1] + '/*.txt')
+    results_dir = 'model-data/even-time-results/delta' + sys.argv[1] + '/'
+
+
     for i, tf in enumerate(test_files):
         result = []
         result_file = results_dir + re.search(r'q.+.txt', tf).group(0).replace('seg', 'res')

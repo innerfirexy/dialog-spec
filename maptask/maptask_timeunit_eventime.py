@@ -52,17 +52,13 @@ def split_utt(tree, delta=1):
     tree: an lxml.etree object parsed from a time-unit xml file
     delta: the length of segment, default = 1 second
     '''
-    tustream = tree.getroot()
+    tustream = tree.findall('tu')
     segments = []
     i = 0
     while i < len(tustream):
         unit = tustream[i]
-        # check the tag, and skip 'noi' and 'sil' units
-        if unit.tag != 'tu':
-            i += 1
-            continue
-        ## process 'tu' units only
-        # for the last unit
+
+        ## for the last unit
         if i == len(tustream)-1 and unit.text != '':
             if '--' in unit.text:
                 break
@@ -72,39 +68,45 @@ def split_utt(tree, delta=1):
             segments.append((tuple(sp_quote(unit.text)), beginutt, endutt))
             break
 
-        # for units in the middle
+        ## for units in the middle
         seg = []
         begintime = float(unit.get('start'))
         beginutt = unit.get('utt')
         beginutt = 0 if beginutt is None else int(beginutt)
         endutt = beginutt
-
         if unit.text != '':
             seg.append(unit.text)
+
         for j in range(i+1, len(tustream)):
             u = tustream[j]
-            # skip non-tu units
-            if u.tag != 'tu':
-                i = j+1
-                break
-            # for tu units
-            if u.get('utt') is not None and int(u.get('utt')) != beginutt:
-                i = j
-                break
+            cutt = u.get('utt')
             btime = float(u.get('start'))
             etime = float(u.get('end'))
             mtime = (btime + etime) / 2
-            if mtime - begintime > delta:
+            if mtime > begintime + delta:
                 i = j
                 break
-            else:
+            elif beginutt == 0:
+                if cutt is not None:
+                    beginutt = int(cutt)
+                    endutt = int(cutt)
                 if u.text != '':
                     seg.append(u.text)
-                    endutt = 0 if u.get('utt') is None else int(u.get('utt'))
                 if j == len(tustream)-1:
                     i = j+1
+                    break
+            else: # beginutt != 0
+                if cutt is not None and int(cutt) != beginutt:
+                    i = j
+                    break
+                else:
+                    if u.text != '':
+                        seg.append(u.text)
+                    if j == len(tustream)-1:
+                        i = j+1
+                        break
 
-        # filter out the words that contain '--', and process single quote
+        ## filter out the words that contain '--', and process single quote
         seg = [w for w in seg if '--' not in w]
         seg_new = []
         for word in seg:
@@ -135,20 +137,20 @@ def sp_quote(word):
 
 
 # experiment with split_utt
-def split_utt_exp():
+def split_utt_exp(delta):
     data_folder = '/Users/yangxu/Documents/HCRC Map Task Corpus/maptask/maptask-xml/'
     tu_files = glob.glob(data_folder + '*.timed-units.xml')
 
     for i, tuf in enumerate(tu_files):
         # tuf = '/Users/yangxu/Documents/HCRC Map Task Corpus/maptask/maptask-xml/q7ec5.g.timed-units.xml'
         try:
-            segments = split_utt(etree.parse(tuf), delta=1)
+            segments = split_utt(etree.parse(tuf), delta)
         except Exception as e:
             print('file name:')
             print(tuf)
             raise
         else:
-            resfile = 'model-data/even-time/' + re.search(r'q[a-z0-9]+\.[f|g]\..+\.', tuf).group(0) + 'seg.txt'
+            resfile = 'model-data/even-time/delta' + str(delta) + '/' + re.search(r'q[a-z0-9]+\.[f|g]\..+\.', tuf).group(0) + 'seg.txt'
             with open(resfile, 'w') as fw:
                 for row in segments:
                     fw.write(' '.join(row[0]) + '\t' + str(row[1]) + '\t' + str(row[2]) + '\n')
@@ -230,4 +232,8 @@ def db_conn(db_name):
 if __name__ == '__main__':
     # survey_uttlen()
     # split_utt_exp()
-    trainLM()
+    # trainLM()
+
+    if len(sys.argv) == 2:
+        delta = int(sys.argv[1])
+        split_utt_exp(delta)
