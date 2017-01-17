@@ -277,7 +277,57 @@ m = lm(pathdev ~ PSO, dt.pso)
 summary(m)
 #####
 # when outliers are removed (ent_swbd < ent.mean + 2*ent.sd)
-# the model is no longer significant
+# the model is no longer significant!!!
 # How many outliers point??
 nrow(dt.sent[ent_swbd >= ent.mean + 2*ent.sd,])/nrow(dt.sent) # 0.04726038
 # 4.7% of the total data points determine the model's performance?!
+
+
+
+#################################
+# experiment with spectrum function on map.dt.ent_swbd.rds
+# using parameter method='ar' (autoregression)
+#################################
+dt.sent = readRDS('map.dt.ent_swbd.rds')
+# replace outliers with mean values
+ent.mean = mean(dt.sent$ent_swbd)
+ent.sd = sd(dt.sent$ent_swbd)
+dt.sent.s = dt.sent[,]
+dt.sent.s[ent_swbd > ent.mean + 2*ent.sd, ent_swbd := ent.mean,]
+# analysis
+dt.spec = dt.sent[, {
+        specval = spectrum(ent_swbd, taper=0, log='no', plot=FALSE, method='ar')
+        .(spec = as.numeric(specval$spec), freq = specval$freq)
+    }, by = .(observation, who)]
+dt.pso = dt.spec[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[which(!is.na(approx_g$y))]
+        y_out_g = approx_g$y[which(!is.na(approx_g$y))]
+        x_out_f = x_out[which(!is.na(approx_f$y))]
+        y_out_f = approx_f$y[which(!is.na(approx_f$y))]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[which(!is.na(y_min))]
+        y_min = y_min[which(!is.na(y_min))]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO)
+    }, by = observation]
+dt.pso = dt.pso[dt.dev[, .(observation, pathdev)], nomatch=0]
+# model
+m = lm(pathdev ~ PSO, dt.pso)
+summary(m)
+##
+# 2.164  0.03258 *
+# autoregression (method = 'ar') is not as good as periodogram (method ='pgram')
