@@ -2,6 +2,9 @@
 *.pkl
 refs/
 .Rapp.history
-model-data/
+*/__pycache__
+.DS_Store
+
+maptask/model-data/
 
 danish/fusaroli2015_exp/data/
