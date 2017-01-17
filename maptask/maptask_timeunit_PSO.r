@@ -331,3 +331,35 @@ summary(m)
 ##
 # 2.164  0.03258 *
 # autoregression (method = 'ar') is not as good as periodogram (method ='pgram')
+
+
+
+############################
+# try out the coh () value returned by the spectrum function
+############################
+dt.sent = readRDS('map.dt.ent_swbd.rds')
+# replace outliers with mean values
+ent.mean = mean(dt.sent$ent_swbd)
+ent.sd = sd(dt.sent$ent_swbd)
+dt.sent.s = dt.sent[,]
+dt.sent.s[ent_swbd > ent.mean + 2*ent.sd, ent_swbd := ent.mean,]
+
+dt.coh = dt.sent.s[, {
+        y_g = ent_swbd[who=='g']
+        y_f = ent_swbd[who=='f']
+        len = min(length(y_g), length(y_f))
+        y_g = y_g[1:len]
+        y_f = y_f[1:len]
+        comb.ts = ts(matrix(c(y_g, y_f), ncol=2))
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no', plot=F, method='pgram', spans = 13)
+        .(coh = as.numeric(spec$coh))
+    }, by = .(observation)]
+dt.coh = dt.coh[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+# model
+m = lm(pathdev ~ coh, dt.coh)
+summary(m)
+
+## summary
+# the bigger 'spans' paremeter gives better performance
+# even significant when entropy outliers are removed
