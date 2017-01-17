@@ -1,0 +1,2 @@
+- create a baseline by shuffling the time sequence
+- try out the blank space included time series.

@@ -363,3 +363,35 @@ summary(m)
 ## summary
 # the bigger 'spans' paremeter gives better performance
 # even significant when entropy outliers are removed
+
+
+
+#############################
+# Does simply the number of entropy outliers correlate with pathdev??
+#############################
+dt.sent = readRDS('map.dt.ent_swbd.rds')
+ent.mean = mean(dt.sent$ent_swbd)
+ent.sd = sd(dt.sent$ent_swbd)
+
+dt.outnum = dt.sent[, {
+        .(outnum = length(.I[ent_swbd > ent.mean + 2*ent.sd]))
+    }, by = .(observation)]
+dt.outnum = dt.outnum[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+m = lm(pathdev ~ outnum, dt.outnum)
+summary(m)
+# It indeed is a significant factor
+# -2.204   0.0295 *
+# Adjusted R-squared:  0.03274
+
+##
+# what about entropy magnitude alone??
+dt.sent = dt.sent[dt.dev[, .(observation, pathdev)], nomatch=0]
+m = lm(pathdev ~ ent_swbd, dt.sent)
+summary(m)
+##
+# hmmm, only marginally significant, which is "good" for us
+# -1.69   0.0911 .
+# Argument: how much information there is in our language, does not greatly
+# correlate with task success
+# Potentially --> the patterns of information flow matters more 
