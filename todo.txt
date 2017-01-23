@@ -1,2 +1,5 @@
 - create a baseline by shuffling the time sequence
 - try out the blank space included time series.
+- train language model and compute entropy for the Danish corpus
+- try PSO analysis on normalized entropy
+- train the lm in a different way, 10-fold cross validation maybe
