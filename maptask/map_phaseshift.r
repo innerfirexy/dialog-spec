@@ -19,6 +19,14 @@ setnames(dt.dev, "Observation", "observation")
 setnames(dt.dev, 'path dev', 'pathdev')
 setkey(dt.dev, observation)
 
+# baseline by shuffling
+dt.shuffle = dt[, {
+        .(ent_swbd = sample(ent_swbd))
+    }, by = .(observation, who)]
+#################
+# note that when we use dt.shuffle instead of dt
+# none the of effects is significnat
+
 
 ###
 # compute phase shift
@@ -31,7 +39,7 @@ dt.ent_maxPS = dt[, {
         y_g = y_g[1:len]
         y_f = y_f[1:len]
         comb.ts = ts(matrix(c(y_g, y_f), ncol=2))
-        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no')
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no', plot=F)
         # phase shift at max spec
         maxPS_g = spec$phase[,1][which(spec$spec[,1]==max(spec$spec[,1]))]
         maxPS_f = spec$phase[,1][which(spec$spec[,2]==max(spec$spec[,2]))]
@@ -47,7 +55,7 @@ dt.ent_peakPSg = dt[, {
         y_g = y_g[1:len]
         y_f = y_f[1:len]
         comb.ts = ts(matrix(c(y_g, y_f), ncol=2))
-        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no')
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no', plot=F)
         # phase shift at all peaks
         i_max_g = which(diff(sign(diff(spec$spec[,1])))<0) + 1
         peakPS_g = spec$phase[,1][i_max_g]
@@ -63,7 +71,7 @@ dt.ent_peakPSf = dt[, {
         y_g = y_g[1:len]
         y_f = y_f[1:len]
         comb.ts = ts(matrix(c(y_g, y_f), ncol=2))
-        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no')
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no', plot=F)
         # phase shift at all peaks
         i_max_f = which(diff(sign(diff(spec$spec[,2])))<0) + 1
         peakPS_f = spec$phase[,1][i_max_f]

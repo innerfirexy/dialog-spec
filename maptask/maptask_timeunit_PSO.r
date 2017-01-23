@@ -344,7 +344,12 @@ ent.sd = sd(dt.sent$ent_swbd)
 dt.sent.s = dt.sent[,]
 dt.sent.s[ent_swbd > ent.mean + 2*ent.sd, ent_swbd := ent.mean,]
 
-dt.coh = dt.sent.s[, {
+# shuffle baseline
+dt.sent.sf = dt.sent[, {
+        .(ent_swbd = sample(ent_swbd))
+    }, by = .(observation, who)]
+
+dt.coh = dt.sent.sf[, {
         y_g = ent_swbd[who=='g']
         y_f = ent_swbd[who=='f']
         len = min(length(y_g), length(y_f))

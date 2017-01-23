@@ -148,6 +148,21 @@ pdf('plots/specbase_vs_freqbase.pdf', 5, 5)
 plot(p)
 dev.off()
 
+## write freq.base and spec.base to rds
+saveRDS(freq.base, 'model-data/freq.base.rds')
+saveRDS(spec.base, 'model-data/spec.base.rds')
+
+# reread
+freq.base = readRDS('model-data/freq.base.rds')
+spec.base = readRDS('model-data/spec.base.rds')
+
+# filter spec.base for each speakers in dt.avg2
+setkey(dt.avg2, observation, who)
+dt.avg2.filter = dt.avg2[, {
+        match(freq, freq.base)
+    }, by = .(observation, who)]
+
+
 
 
 ##########################
