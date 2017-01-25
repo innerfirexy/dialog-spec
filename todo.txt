@@ -1,10 +1,13 @@
 - create a baseline by shuffling the time sequence
-    - shuffled series also give significant correlation, try to filter out noise
+    - done* shuffled series also give significant correlation, try to filter out noise
     - done* at least we confirmed that shuffle baseline works for phase shift effect
-    - ideas: normalized entropy might work (both globally normalized, and locally normalized within dialogue) 
+    - done* ideas: normalized entropy might work (both globally normalized, and locally normalized within dialogue) 
 
-done - try out the blank space included time series.
+- new analysis w.r.t. phase shift
+	- peak-to-peak phase shift, phase wrapping?? (Oullier et al., 2008)
+
+- done* try out the blank space included time series.
 - train language model and compute entropy for the Danish corpus
-- try PSO analysis on normalized entropy
+- done* try PSO analysis on normalized entropy
 - train the lm in a different way, 10-fold cross validation maybe
-- compute turn-based entropy for maptask
+- *unnecessary compute turn-based entropy for maptask
