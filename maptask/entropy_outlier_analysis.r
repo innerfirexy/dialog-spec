@@ -81,6 +81,7 @@ dt.pso = dt.spec[, {
         .(PSO = PSO)
     }, by = observation]
 dt.pso = dt.pso[dt.count]
+# dt.pso = dt.pso[dt.dev[, .(observation, pathdev)]]
 
 m = lm(pathdev ~ PSO, dt.pso)
 summary(m)
@@ -177,3 +178,52 @@ p = ggplot(dt, aes(x = ent_swbd)) + geom_density()
 pdf('plots/ent_swbd_density.pdf', 5, 5)
 plot(p)
 dev.off()
+
+
+
+########################
+# since we already know that removing the entropy outliers will cause the correlation between PSO and pathdev to disappear
+# then, how does removing outliers influence the magnitude of PSO at the first place??
+########################
+dt.rmol = dt[,]
+dt.rmol[outlier==T, ent_swbd := ent_swbd.mean,]
+
+dt.rmol.spec = dt.rmol[, {
+        specval = spectrum(ent_swbd, taper=0, log='no', plot=FALSE, method='pgram')
+        .(spec = as.numeric(specval$spec), freq = specval$freq)
+    }, by = .(observation, who)]
+dt.rmol.pso = dt.rmol.spec[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[!is.na(approx_g$y)]
+        y_out_g = approx_g$y[!is.na(approx_g$y)]
+        x_out_f = x_out[!is.na(approx_f$y)]
+        y_out_f = approx_f$y[!is.na(approx_f$y)]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[!is.na(y_min)]
+        y_min = y_min[!is.na(y_min)]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO)
+    }, by = observation]
+dt.rmol.pso = dt.rmol.pso[dt.dev[, .(observation, pathdev)]]
+
+m = lm(pathdev ~ PSO, dt.rmol.pso)
+summary(m)
+# n.s.
+
+## compare with dt.pso (entropy outliers remained)
+t.test(dt.pso$PSO, dt.rmol.pso$PSO)
+# t = -6.4273, df = 188.43, p-value = 1.037e-09
+# When outlier removed, the PSO increases, but the correlation with pathdev is gone!!

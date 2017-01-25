@@ -117,3 +117,6 @@ dt.wmfreq.rmol = dt.spec.rmol[, {
 t.test(dt.wmfreq.rmol$wmfreq, dt.wmfreq$wmfreq) # n.s.
 t.test(dt.wmfreq.rmol[who=='g']$wmfreq, dt.wmfreq[who=='g',]$wmfreq) # n.s.
 t.test(dt.wmfreq.rmol[who=='f']$wmfreq, dt.wmfreq[who=='f']$wmfreq) # n.s.
+
+# compare maxfreq.rmol vs maxfreq
+t.test(dt.maxfreq.rmol$maxfreq, dt.maxfreq$maxfreq)
