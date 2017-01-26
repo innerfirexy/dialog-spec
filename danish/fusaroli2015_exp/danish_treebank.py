@@ -6,7 +6,8 @@ from lxml import etree
 import sys
 import glob
 import re
-import
+import string
+import subprocess
 
 
 # get all the tokens in a <s> instance
@@ -71,17 +72,42 @@ def process_txt_files():
     for i, txtfile in enumerate(txt_files):
         with open(txtfile, 'r') as fr:
             for line in fr:
-                if line.strip() == '\n':
+                if line.strip() == '':
                     continue
                 # break the line by sentence separaters
                 sents = re.split(r'[\.|!|\?]', line)
-
-                # remove all punctuations
+                for s in sents:
+                    # remove all punctuations
+                    # s = re.sub(r'[^\P{P}-]+', '', s) # does not work
+                    remove = string.punctuation
+                    remove = remove.replace('-', '')
+                    pattern = r'[{}]'.format(remove)
+                    s = re.sub(pattern, '', s).strip()
+                    if s != '':
+                        all_sents.append(s)
+        # print progress
+        sys.stdout.write('\r{}/{} extracted'.format(i+1, len(txt_files)))
+        sys.stdout.flush()
     # write to output file
+    with open(output_file, 'w') as fw:
+        for s in all_sents:
+            fw.write(s + '\n')
+
+##
+# train language model
+def trainLM():
+    input_file = 'data/train_set.txt'
+    lm_file = 'data/train_set.lm'
+    binary_dir = '/Users/yangxu/projects/srilm-1.7.1/bin/macosx/'
+    train_cmd = [binary_dir + 'ngram-count', '-order', '3', '-text', input_file, '-lm', lm_file]
+    return_code = subprocess.check_call(train_cmd)
+    if return_code != 0:
+        print('train failure')
     pass
 
 
 ##
 # main
 if __name__ == '__main__':
-    
+    # process_txt_files()
+    trainLM()
