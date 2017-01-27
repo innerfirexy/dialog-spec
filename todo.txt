@@ -11,3 +11,12 @@
 - done* try PSO analysis on normalized entropy
 - train the lm in a different way, 10-fold cross validation maybe
 - *unnecessary compute turn-based entropy for maptask
+
+
+#####
+- is entropy series in dialogue a stationary progress?
+if not, DFT (FFT) does a poor job (see http://www.bearcave.com/misl/misl_tech/signal/nonstat/)
+wavelets analysis performs better on non-stationary series
+- stationarity test
+  https://people.maths.bris.ac.uk/~magpn/Research/LSTS/TOS.html
+  http://www.statosphere.com.au/check-time-series-stationary-r/
