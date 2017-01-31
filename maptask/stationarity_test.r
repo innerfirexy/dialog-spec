@@ -41,3 +41,4 @@ m = lm(ent_swbd ~ utterID, dt)
 summary(m)
 # 2.357   0.0185 *
 # significant result
+# beta = 2.299e-03, Adjusted R-squared:  0.0001681

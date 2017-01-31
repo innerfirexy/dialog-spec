@@ -41,3 +41,4 @@ summary(m)
 m = lm(ent ~ uttPos, dt.new)
 summary(m)
 # 1.85   0.0643 .
+# beta = 7.241e-05, Adjusted R-squared:  0.0002183
