@@ -226,4 +226,168 @@ summary(m)
 ## compare with dt.pso (entropy outliers remained)
 t.test(dt.pso$PSO, dt.rmol.pso$PSO)
 # t = -6.4273, df = 188.43, p-value = 1.037e-09
-# When outlier removed, the PSO increases, but the correlation with pathdev is gone!!
+# When outlier removed, the PSO increases (makes sense) , but the correlation with pathdev is gone!!
+
+
+
+#########################
+# what if we keep the outliers only, and replace the non-outliers with ent.mean
+dt.rpnol = copy(dt)
+dt.rpnol[outlier==F, ent_swbd := ent_swbd.mean]
+
+dt.rpnol.spec = dt.rpnol[, {
+        specval = spectrum(ent_swbd, taper=0, log='no', plot=FALSE, method='pgram')
+        .(spec = as.numeric(specval$spec), freq = specval$freq)
+    }, by = .(observation, who)]
+dt.rpnol.pso = dt.rpnol.spec[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[!is.na(approx_g$y)]
+        y_out_g = approx_g$y[!is.na(approx_g$y)]
+        x_out_f = x_out[!is.na(approx_f$y)]
+        y_out_f = approx_f$y[!is.na(approx_f$y)]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[!is.na(y_min)]
+        y_min = y_min[!is.na(y_min)]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO)
+    }, by = observation]
+dt.rpnol.pso = dt.rpnol.pso[dt.dev[, .(observation, pathdev)]]
+
+m = lm(pathdev ~ PSO, dt.rpnol.pso)
+summary(m)
+###
+# PSO           66.743     42.035   1.588    0.115
+# although it is n.s., the direction is the same as the case where non-outliers are kept
+#
+
+
+##############
+# what if we keep the big entropies (above mean + sd)
+dt.bigent = copy(dt)
+dt.bigent[ent_swbd <= ent_swbd.mean + ent_swbd.sd, ent_swbd := ent_swbd.mean]
+
+dt.bigent.spec = dt.bigent[, {
+        specval = spectrum(ent_swbd, taper=0, log='no', plot=FALSE, method='pgram')
+        .(spec = as.numeric(specval$spec), freq = specval$freq)
+    }, by = .(observation, who)]
+dt.bigent.pso = dt.bigent.spec[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[!is.na(approx_g$y)]
+        y_out_g = approx_g$y[!is.na(approx_g$y)]
+        x_out_f = x_out[!is.na(approx_f$y)]
+        y_out_f = approx_f$y[!is.na(approx_f$y)]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[!is.na(y_min)]
+        y_min = y_min[!is.na(y_min)]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO)
+    }, by = observation]
+dt.bigent.pso = dt.bigent.pso[dt.dev[, .(observation, pathdev)]]
+
+m = lm(pathdev ~ PSO, dt.bigent.pso)
+summary(m)
+# PSO           84.668     52.018   1.628    0.106
+# hmmmm, closer to a significant predictor
+
+
+
+############################
+# OK, what if we keep the entropies that are above mean
+dt.abovemean = copy(dt)
+dt.abovemean[ent_swbd <= ent_swbd.mean, ent_swbd := ent_swbd.mean]
+nrow(dt.abovemean[ent_swbd == ent_swbd.mean,]) / nrow(dt) # 63.0%
+
+dt.abovemean.spec = dt.abovemean[, {
+        specval = spectrum(ent_swbd, taper=0, log='no', plot=FALSE, method='pgram')
+        .(spec = as.numeric(specval$spec), freq = specval$freq)
+    }, by = .(observation, who)]
+dt.abovemean.pso = dt.abovemean.spec[, {
+        x_g = freq[who=='g']
+        y_g = spec[who=='g']
+        x_f = freq[who=='f']
+        y_f = spec[who=='f']
+        # linear interpolation
+        x_out = sort(union(x_g, x_f))
+        approx_g = approx(x_g, y_g, xout = x_out)
+        approx_f = approx(x_f, y_f, xout = x_out)
+        # find min ys and remove NAs
+        x_out_g = x_out[!is.na(approx_g$y)]
+        y_out_g = approx_g$y[!is.na(approx_g$y)]
+        x_out_f = x_out[!is.na(approx_f$y)]
+        y_out_f = approx_f$y[!is.na(approx_f$y)]
+        y_min = pmin(approx_g$y, approx_f$y)
+        x_min = x_out[!is.na(y_min)]
+        y_min = y_min[!is.na(y_min)]
+        # compute AUVs and PSO
+        AUV_g = trapz(x_out_g, y_out_g)
+        AUV_f = trapz(x_out_f, y_out_f)
+        AUV_min = trapz(x_min, y_min)
+        PSO = AUV_min / (AUV_g + AUV_f)
+        # return PSO
+        .(PSO = PSO)
+    }, by = observation]
+dt.abovemean.pso = dt.abovemean.pso[dt.dev[, .(observation, pathdev)]]
+
+m = lm(pathdev ~ PSO, dt.abovemean.pso)
+summary(m)
+# PSO           109.80      56.81   1.933   0.0558 .
+# Already marginal significant
+# Therefore, the large entropy utterances matter more when using PSO to predict task performance
+# (in the case of Map Task)
+
+
+
+############
+# Can we only use extreme valus to analyze phase shift effect
+dt.abovemean = copy(dt)
+dt.abovemean[ent_swbd <= ent_swbd.mean, ent_swbd := ent_swbd.mean]
+nrow(dt.abovemean[ent_swbd == ent_swbd.mean,]) / nrow(dt) # 63.0%
+
+dt.abovemean.peakPS = dt.abovemean[, {
+        y_a = ent_swbd[who=='f']
+        y_b = ent_swbd[who=='g']
+        len = min(length(y_a), length(y_b))
+        y_a = y_a[1:len]
+        y_b = y_b[1:len]
+        comb.ts = ts(matrix(c(y_a, y_b), ncol=2))
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no', plot=F)
+        # phase shift at all peaks
+        i_max_a = which(diff(sign(diff(spec$spec[,1])))<0) + 1
+        i_max_b = which(diff(sign(diff(spec$spec[,2])))<0) + 1
+        peakPS = spec$phase[,1][union(i_max_a, i_max_b)]
+        # return
+        .(peakPS = peakPS)
+    }, by = observation]
+dt.abovemean.peakPS = dt.abovemean.peakPS[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+m = lm(pathdev ~ abs(peakPS), dt.abovemean.peakPS)
+summary(m)
+# abs(peakPS)  -2.1575     0.9888  -2.182   0.0292 *
+# Adjusted R-squared:  0.001284
+# It works!
