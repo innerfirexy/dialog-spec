@@ -65,6 +65,17 @@ summary(m1)
 # 2.602   0.0105 *
 # Adjusted R-squared:  0.04818
 
+#####
+# plot regression line
+p = ggplot(dt.ent_swbd_pso, aes(x = PSO, y = pathdev)) +
+    geom_point() +
+    geom_smooth(method = lm) + ylab('PATHDEV')
+pdf('plots/pathdev_vs_PSO.pdf', 4, 4)
+plot(p)
+dev.off()
+
+
+
 m2 = lm(pathdev ~ PSO + AUVg + AUVf + AUVmin, dt.ent_swbd_pso)
 summary(m2)
 # n.s. for all factors

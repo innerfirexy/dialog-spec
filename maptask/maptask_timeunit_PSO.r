@@ -281,6 +281,10 @@ summary(m)
 # How many outliers point??
 nrow(dt.sent[ent_swbd >= ent.mean + 2*ent.sd,])/nrow(dt.sent) # 0.04726038
 # 4.7% of the total data points determine the model's performance?!
+##
+# w/o remove outliers,
+# PSO           201.78      77.55   2.602   0.0105 *
+# Adjusted R-squared:  0.04818
 
 
 

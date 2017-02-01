@@ -77,6 +77,15 @@ m = lm(ConfidenceConvergence ~ PSO, dt.pso)
 summary(m)
 # n.s. -1.495    0.157
 
+##########
+# plot regression line
+p = ggplot(dt.pso, aes(x=PSO, y=CollectivePerformance)) +
+    geom_point() +
+    geom_smooth(method = lm, color='red')
+pdf('plots/CollectivePerformance_vs_PSO.pdf', 4, 4)
+plot(p)
+dev.off()
+
 
 
 ##########################
@@ -141,4 +150,4 @@ summary(m)
 # n.s.
 
 ## ok, it turns out that the "predicting" ability of PSO is not that good
-## PSO is only predictive of the overall performance, when all information is included. 
+## PSO is only predictive of the overall performance, when all information is included.

@@ -118,3 +118,54 @@ summary(m)
 m = lm(pathdev ~ peakPSf_mean, unique(dt.ent_peakPSf[,c(1,3,4), with=F]))
 summary(m)
 # -2.071   0.0407 *
+
+
+
+#############
+# analyze relative phases at all freqs components
+# phase shift at all freqs
+dt.allPS = dt[, {
+        y_a = ent_swbd[who=='f']
+        y_b = ent_swbd[who=='g']
+        len = min(length(y_a), length(y_b))
+        y_a = y_a[1:len]
+        y_b = y_b[1:len]
+        comb.ts = ts(matrix(c(y_a, y_b), ncol=2))
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no', plot=F)
+        # phase shift at all freq components
+        .(allPS = spec$phase[,1])
+    }, by = observation]
+dt.allPS = dt.allPS[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+##
+# models
+m = lm(pathdev ~ abs(allPS), dt.allPS)
+summary(m)
+# abs(allPS)   -0.1395     0.7141  -0.195    0.845
+# Adj-R^2: NA
+
+
+########################
+# phase shift at the peak freqs
+dt.peakPS = dt[, {
+        y_a = ent_swbd[who=='f']
+        y_b = ent_swbd[who=='g']
+        len = min(length(y_a), length(y_b))
+        y_a = y_a[1:len]
+        y_b = y_b[1:len]
+        comb.ts = ts(matrix(c(y_a, y_b), ncol=2))
+        spec = spectrum(comb.ts, detrend=FALSE, taper=0, log='no', plot=F)
+        # phase shift at all peaks
+        i_max_a = which(diff(sign(diff(spec$spec[,1])))<0) + 1
+        i_max_b = which(diff(sign(diff(spec$spec[,2])))<0) + 1
+        peakPS = spec$phase[,1][union(i_max_a, i_max_b)]
+        # return
+        .(peakPS = peakPS)
+    }, by = observation]
+dt.peakPS = dt.peakPS[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+# models
+m = lm(pathdev ~ abs(peakPS), dt.peakPS)
+summary(m)
+# abs(peakPS)  -2.0031     0.9932  -2.017   0.0438 *
+# Adjusted R-squared:  0.001049
