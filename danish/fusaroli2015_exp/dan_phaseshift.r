@@ -107,3 +107,11 @@ m = lm(CollectivePerformance ~ abs(allPS), dt.allPS)
 summary(m)
 # abs(allPS)   0.04657    0.02448   1.902   0.0573 .
 # Adjusted R-squared:  0.000954
+
+
+
+##############
+# check the distribution of relative phases
+
+# peak phase
+p = ggplot(dt.peakPS, aes(x = abs(peakPS))) + geom_density()

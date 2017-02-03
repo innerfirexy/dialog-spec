@@ -80,6 +80,7 @@ dt.spec3[, {seriesId := .GRP}, by = .(pairId, who)]
 
 m = lmer(spec ~ freq + (1|seriesId), dt.spec3)
 summary(m)
+# freq        2.252e-02  9.366e-03 5.620e+03   2.404   0.0162 *
 
 m2 = lm(spec ~ freq, dt.spec3)
 summary(m)

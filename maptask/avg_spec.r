@@ -52,7 +52,7 @@ dt.spec2[, {seriesId := .GRP}, by = .(observation, who)]
 
 m = lmer(spec ~ freq + (1|seriesId), dt.spec2)
 summary(m)
-# freq          314.13      19.81   15.86
+# freq          314.13      19.81   15.86***
 
 m2 = lm(spec ~ freq, dt.spec2)
 summary(m)

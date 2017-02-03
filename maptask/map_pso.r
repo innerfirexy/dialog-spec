@@ -58,6 +58,10 @@ dt.ent_swbd_pso = dt.ent_swbd[, {
     }, by = observation]
 
 dt.ent_swbd_pso = dt.ent_swbd_pso[dt.dev[, .(observation, pathdev)], nomatch=0]
+##
+# save the first two columns as rds
+saveRDS(dt.ent_swbd_pso[,.(observation, PSO)], 'dt.pso.rds')
+
 
 # models
 m1 = lm(pathdev ~ PSO, dt.ent_swbd_pso)
