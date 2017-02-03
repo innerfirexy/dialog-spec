@@ -94,8 +94,9 @@ dt.plot = rbindlist(list(dt.plot1, dt.plot2))
 
 p = ggplot(dt.plot, aes(x=freq, y=spec, group=Type)) +
     geom_smooth(aes(color = Type, lty = Type), method='lm') +
-    theme(legend.position = c(.8,.15)) +
-    xlab('Frequency') + ylab('Power')
+    xlab('Frequency') + ylab('Power density') +
+    theme_bw() +
+    theme(legend.position = c(.8,.15))
 pdf('plots/average_spectrum_MapTask.pdf', 4, 4)
 plot(p)
 dev.off()
