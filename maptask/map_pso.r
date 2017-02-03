@@ -71,18 +71,52 @@ summary(m1)
 
 #####
 # plot regression line
+# and add a transparent rectangle over the outliers
+d.rec = data.table(x1=.2 , x2=.3, y1=170, y2=230)
 p = ggplot(dt.ent_swbd_pso, aes(x = PSO, y = pathdev)) +
     geom_point() +
-    geom_smooth(method = lm) + ylab('PATHDEV')
+    geom_smooth(method = lm) + ylab('PATHDEV') +
+    # geom_rect(data=d.rec, aes(xmin=x1, xmax=x2, ymin=y1, ymax=y2, fill=T), color='black', alpha=.2, inherit.aes=F) +
+    # annotate('text', x=.225, y=220, label='Outliers') +
+    theme_bw() +
+    theme(legend.position='none')
 pdf('plots/pathdev_vs_PSO.pdf', 4, 4)
 plot(p)
 dev.off()
 
+##
+# outliters of pathdev
+pathdev.sd = sd(dt.ent_swbd_pso$pathdev) # 49.68002
+pathdev.mean = mean(dt.ent_swbd_pso$pathdev) # 69.90435
+pathdev.mean + 2*pathdev.sd
+nrow(dt.ent_swbd_pso[pathdev > pathdev.mean + 2*pathdev.sd,]) # 7 outliers
 
+###
+# test heteroskedasticity
+car::ncvTest(m1)
+# Chisquare = 7.115326, Df = 1, p = 0.00764277
+# we can reject the null hypothesis that the variance of the residuals is constant
+# and infer that heteroscedasticity is indeed present
 
-m2 = lm(pathdev ~ PSO + AUVg + AUVf + AUVmin, dt.ent_swbd_pso)
-summary(m2)
-# n.s. for all factors
+# Breush-Pagan test
+lmtest::bptest(m1)
+# BP = 5.5589, df = 1, p-value = 0.01839
+
+# Box-Cox transform to pathdev
+pdBCMod = caret::BoxCoxTrans(dt.ent_swbd_pso$pathdev)
+dt.ent_swbd_pso = cbind(dt.ent_swbd_pso, pathdev_new = predict(pdBCMod, dt.ent_swbd_pso$pathdev))
+
+m0 = lm(pathdev_new ~ PSO, dt.ent_swbd_pso)
+summary(m0)
+# PSO           6.1946     2.6233   2.361   0.0199 *
+# Adjusted R-squared:  0.03859
+# In an unwanted direction!
+# plot
+p = ggplot(dt.ent_swbd_pso, aes(x = PSO, y = pathdev_new)) +
+    geom_point() +
+    geom_smooth(method = lm) + ylab('PATHDEV') +
+    theme_bw()
+
 
 
 ###

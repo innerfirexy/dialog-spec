@@ -56,6 +56,11 @@ summary(m)
 # PSO          -40.886     15.939  -2.565   0.0224 *
 # Adjusted R-squared:  0.2711
 
+# outlier test
+outlierTest(m)
+# 1 line is outlier
+
+
 m = lm(CollectiveBenefit ~ PSO, dt.pso)
 summary(m)
 # n.s. -1.493   0.1577
@@ -81,10 +86,60 @@ summary(m)
 # plot regression line
 p = ggplot(dt.pso, aes(x=PSO, y=CollectivePerformance)) +
     geom_point() +
-    geom_smooth(method = lm, color='red')
+    geom_smooth(method = lm, color='red') +
+    theme_bw()
 pdf('plots/CollectivePerformance_vs_PSO.pdf', 4, 4)
 plot(p)
 dev.off()
+
+##
+# outliers in CollectivePerformance
+cp.mean = mean(dt.pso$CollectivePerformance) # 4.680361
+cp.sd = sd(dt.pso$CollectivePerformance) # 1.294164
+cp.mean + 2*cp.sd # 7.268688
+cp.mean - 2*cp.sd # 2.092033
+
+nrow(dt.pso[CollectivePerformance > cp.mean+2*cp.sd,]) # 1
+nrow(dt.pso[CollectivePerformance < cp.mean-2*cp.sd,]) # 0
+
+# remove the outliers and fit a new model
+m0 = lm(CollectivePerformance ~ PSO, dt.pso[CollectivePerformance <= cp.mean+2*cp.sd])
+summary(m0)
+# n.s.
+# the upper-left point is removed
+
+##
+# outliers in PSO
+pso.mean = mean(dt.pso$PSO)
+pso.sd = sd(dt.pso$PSO)
+
+nrow(dt.pso[PSO > pso.mean + 2*pso.sd,]) # 0
+nrow(dt.pso[PSO < pso.mean - 2*pso.sd,]) # 2
+
+m1 = lm(CollectivePerformance ~ PSO, dt.pso[PSO >= pso.mean-2*pso.sd,])
+summary(m1)
+# n.s.
+# same direction but n.s., tow many missing PSO in the middle
+# the left-most two points are removed
+
+####
+# OK, because of data scarcity, we do not mark outliers in DJD
+
+
+#####
+# plot WorstParticipantPerformance ~ PSO
+p = ggplot(dt.pso, aes(x=PSO, y=WorstParticipantPerformance)) +
+    geom_point() +
+    geom_smooth(method = lm, color='red') +
+    theme_bw()
+pdf('plots/WorstParticipantPerformance_vs_PSO.pdf', 4, 4)
+plot(p)
+dev.off()
+
+m2 = lm(WorstParticipantPerformance ~ PSO, dt.pso[PSO >= pso.mean-2*pso.sd,])
+summary(m2)
+
+
 
 
 
