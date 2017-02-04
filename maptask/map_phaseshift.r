@@ -143,6 +143,7 @@ m = lm(pathdev ~ abs(allPS), dt.allPS)
 summary(m)
 # abs(allPS)   -0.1395     0.7141  -0.195    0.845
 # Adj-R^2: NA
+# F-statistic: 0.03819 on 1 and 5476 DF,  p-value: 0.8451
 
 
 ########################
@@ -169,3 +170,4 @@ m = lm(pathdev ~ abs(peakPS), dt.peakPS)
 summary(m)
 # abs(peakPS)  -2.0031     0.9932  -2.017   0.0438 *
 # Adjusted R-squared:  0.001049
+# F-statistic: 4.067 on 1 and 2920 DF,  p-value: 0.04381

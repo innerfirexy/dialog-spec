@@ -172,7 +172,7 @@ p = ggplot(dt.plot, aes(x=freq, y=spec, group=Type)) +
     geom_smooth(aes(color = Type, lty = Type), method='lm') +
     xlab('Frequency') + ylab('Power density') +
     theme_bw() +
-    theme(legend.position = c(.8,.15))
-pdf('plots/average_spectrum_DJD.pdf', 4, 4)
+    theme(legend.position = c(.75,.16))
+pdf('plots/average_spectrum_DJD.pdf', 3, 3)
 plot(p)
 dev.off()

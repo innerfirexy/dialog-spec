@@ -96,7 +96,21 @@ p = ggplot(dt.plot, aes(x=freq, y=spec, group=Type)) +
     geom_smooth(aes(color = Type, lty = Type), method='lm') +
     xlab('Frequency') + ylab('Power density') +
     theme_bw() +
-    theme(legend.position = c(.8,.15))
-pdf('plots/average_spectrum_MapTask.pdf', 4, 4)
+    theme(legend.position = c(.75,.17))
+pdf('plots/average_spectrum_MapTask.pdf', 3, 3)
 plot(p)
 dev.off()
+
+
+############
+# plot Map Task and DJD together
+
+# read DJD data
+dt.DJD = fread('../danish/fusaroli2015_exp/data/all_pairs_entropy.txt')
+setnames(dt.DJD, c('pairId', 'who', 'ent'))
+setkey(dt.DJD, pairId, who)
+
+dt.DJD.spec = dt.DJD[, {
+        spec = spectrum(ent, taper=0, log='no', plot=F, method='pgram', spans=c(7,7))
+        .(spec = spec$spec, freq = spec$freq)
+    }, by = .(pairId, who)]

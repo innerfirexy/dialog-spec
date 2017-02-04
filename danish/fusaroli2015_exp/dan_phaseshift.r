@@ -59,6 +59,8 @@ m = lm(CollectivePerformance ~ abs(peakPS), dt.peakPS)
 summary(m)
 # abs(peakPS)  0.07093    0.03302   2.148   0.0319 *
 # Adjusted R-squared:  0.002393
+# F-statistic: 4.613 on 1 and 1505 DF,  p-value: 0.03189
+
 
 m = lm(CollectiveBenefit ~ abs(peakPS), dt.peakPS)
 summary(m)
@@ -107,6 +109,7 @@ m = lm(CollectivePerformance ~ abs(allPS), dt.allPS)
 summary(m)
 # abs(allPS)   0.04657    0.02448   1.902   0.0573 .
 # Adjusted R-squared:  0.000954
+# F-statistic: 3.618 on 1 and 2740 DF,  p-value: 0.05728
 
 
 

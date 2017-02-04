@@ -92,7 +92,7 @@ summary(m)
 # plot regression line
 p = ggplot(dt.pso, aes(x=PSO, y=CollectivePerformance)) +
     geom_point() +
-    geom_smooth(method = lm, color='red') +
+    geom_smooth(method = lm, color='#D55E00') +
     theme_bw()
 pdf('plots/CollectivePerformance_vs_PSO.pdf', 4, 4)
 plot(p)

@@ -79,10 +79,10 @@ summary(m1)
 #####
 # plot regression line
 # and add a transparent rectangle over the outliers
-d.rec = data.table(x1=.2 , x2=.3, y1=170, y2=230)
+# d.rec = data.table(x1=.2 , x2=.3, y1=170, y2=230)
 p = ggplot(dt.ent_swbd_pso, aes(x = PSO, y = pathdev)) +
     geom_point() +
-    geom_smooth(method = lm) + ylab('PATHDEV') +
+    geom_smooth(method = 'lm', color='#0072B2') + ylab('PATHDEV') +
     # geom_rect(data=d.rec, aes(xmin=x1, xmax=x2, ymin=y1, ymax=y2, fill=T), color='black', alpha=.2, inherit.aes=F) +
     # annotate('text', x=.225, y=220, label='Outliers') +
     theme_bw() +
