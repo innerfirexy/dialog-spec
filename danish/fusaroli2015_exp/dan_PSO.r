@@ -39,11 +39,16 @@ dt.pso = dt.spec[, {
         y_min = pmin(approx_A$y, approx_B$y)
         x_min = x_out[!is.na(y_min)]
         y_min = y_min[!is.na(y_min)]
+        y_max = pmax(approx_A$y, approx_B$y)
+        x_max = x_out[!is.na(y_max)]
+        y_max = y_max[!is.na(y_max)]
         # compute AUVs and PSO
         AUV_A = trapz(x_out_A, y_out_A)
         AUV_B = trapz(x_out_B, y_out_B)
         AUV_min = trapz(x_min, y_min)
-        PSO = AUV_min / (AUV_A + AUV_B)
+        AUV_max = trapz(x_max, y_max)
+        # PSO = AUV_min / (AUV_A + AUV_B)
+        PSO = AUV_min / AUV_max
         # return PSO
         .(PSO = PSO)
     }, by = pairId]
@@ -53,8 +58,9 @@ dt.pso = dt.pso[dt.pf, nomatch=0]
 # models
 m = lm(CollectivePerformance ~ PSO, dt.pso)
 summary(m)
-# PSO          -40.886     15.939  -2.565   0.0224 *
+# PSO          -23.154      9.011  -2.569  0.02226 *
 # Adjusted R-squared:  0.2711
+# F-statistic: 6.602 on 1 and 14 DF, p-value: 0.02226
 
 # outlier test
 outlierTest(m)

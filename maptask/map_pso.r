@@ -48,11 +48,16 @@ dt.ent_swbd_pso = dt.ent_swbd[, {
         y_min = pmin(approx_g$y, approx_f$y)
         x_min = x_out[which(!is.na(y_min))]
         y_min = y_min[which(!is.na(y_min))]
+        y_max = pmax(approx_g$y, approx_f$y)
+        x_max = x_out[!is.na(y_max)]
+        y_max = y_max[!is.na(y_max)]
         # compute AUVs and PSO
         AUV_g = trapz(x_out_g, y_out_g)
         AUV_f = trapz(x_out_f, y_out_f)
         AUV_min = trapz(x_min, y_min)
-        PSO = AUV_min / (AUV_g + AUV_f)
+        AUV_max = trapz(x_max, y_max)
+        # PSO = AUV_min / (AUV_g + AUV_f)
+        PSO = AUV_min / AUV_max
         # return PSO
         .(PSO = PSO, AUVg = AUV_g, AUVf = AUV_f, AUVmin = AUV_min)
     }, by = observation]
@@ -66,8 +71,10 @@ saveRDS(dt.ent_swbd_pso[,.(observation, PSO)], 'dt.pso.rds')
 # models
 m1 = lm(pathdev ~ PSO, dt.ent_swbd_pso)
 summary(m1)
-# 2.602   0.0105 *
-# Adjusted R-squared:  0.04818
+# PSO           124.83      49.39   2.527  0.01287 *
+# Adjusted R-squared:  0.04513
+# F-statistic: 6.388 on 1 and 113 DF,  p-value: 0.01287
+
 
 #####
 # plot regression line
@@ -94,13 +101,13 @@ nrow(dt.ent_swbd_pso[pathdev > pathdev.mean + 2*pathdev.sd,]) # 7 outliers
 ###
 # test heteroskedasticity
 car::ncvTest(m1)
-# Chisquare = 7.115326, Df = 1, p = 0.00764277
+# Chisquare = 7.235384    Df = 1     p = 0.00714805
 # we can reject the null hypothesis that the variance of the residuals is constant
 # and infer that heteroscedasticity is indeed present
 
 # Breush-Pagan test
 lmtest::bptest(m1)
-# BP = 5.5589, df = 1, p-value = 0.01839
+# BP = 5.6241, df = 1, p-value = 0.01772
 
 # Box-Cox transform to pathdev
 pdBCMod = caret::BoxCoxTrans(dt.ent_swbd_pso$pathdev)
@@ -108,14 +115,18 @@ dt.ent_swbd_pso = cbind(dt.ent_swbd_pso, pathdev_new = predict(pdBCMod, dt.ent_s
 
 m0 = lm(pathdev_new ~ PSO, dt.ent_swbd_pso)
 summary(m0)
-# PSO           6.1946     2.6233   2.361   0.0199 *
-# Adjusted R-squared:  0.03859
-# In an unwanted direction!
+# PSO           3.8528     1.6699   2.307   0.0229 *
+# Adjusted R-squared:  0.03654
+# F-statistic: 5.323 on 1 and 113 DF,  p-value: 0.02287
+# Still significant
 # plot
 p = ggplot(dt.ent_swbd_pso, aes(x = PSO, y = pathdev_new)) +
     geom_point() +
     geom_smooth(method = lm) + ylab('PATHDEV') +
     theme_bw()
+pdf('plots/pathdev_boxcox_vs_PSO.pdf', 4, 4)
+plot(p)
+dev.off()
 
 
 
