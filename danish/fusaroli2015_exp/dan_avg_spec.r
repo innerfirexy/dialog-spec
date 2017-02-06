@@ -170,9 +170,9 @@ dt.plot = rbindlist(list(dt.plot1, dt.plot2))
 
 p = ggplot(dt.plot, aes(x=freq, y=spec, group=Type)) +
     geom_smooth(aes(color = Type, lty = Type), method='lm') +
-    xlab('Frequency') + ylab('Power density') +
+    xlab('Frequency') + ylab('Power') +
     theme_bw() +
-    theme(legend.position = c(.75,.16))
+    theme(legend.position = c(.75,.17))
 pdf('plots/average_spectrum_DJD.pdf', 3, 3)
 plot(p)
 dev.off()

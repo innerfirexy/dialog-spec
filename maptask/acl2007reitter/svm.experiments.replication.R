@@ -89,3 +89,18 @@ commoncv2.new <- sample(0:(folds-1), length(levels(x5.new$dialogue)), replace=TR
 all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time * PSO), x.new, 'test',  folds=10, cv=commoncv1.new)
 
 # all1.new == 0.07386766
+
+
+####
+# ##
+# combine with dt.rp with dt.pso
+dt.rp = readRDS('dt.peakRP.rds')
+dt.comb = dt.rp[dt.pso, nomatch=0]
+
+d <- read.table("maptask.performance.bal.data", header=TRUE)
+d.new = data.table(d)
+setkey(d.new, dialogue)
+
+dt.comb2 = d.new[dt.comb, nomatch=0]
+# save
+saveRDS(dt.comb2, 'dt.comb.rds')
