@@ -69,22 +69,28 @@ dt.peakPS = dt[, {
     }, by = observation]
 dt.peakPS = dt.peakPS[dt.dev[, .(observation, pathdev)], nomatch=0]
 
+dt.peakPS.mean = dt.peakPS[, {
+        .(peakPSmean = mean(abs(peakPS)), peakPSmedian = median(abs(peakPS)), peakPSmax = max(abs(peakPS)))
+    }, by = observation]
+dt.peakPS.mean = dt.peakPS.mean[dt.dev[, .(observation, pathdev)], nomatch=0]
+
+
+
 ##
-# join dt.pso and dt.peakPS
-dt.join = dt.peakPS[dt.pso[, .(observation, PSO)], nomatch=0]
+# join dt.pso and dt.peakPS.mean
+dt.join = dt.peakPS.mean[dt.pso[, .(observation, PSO)], nomatch=0]
 
 ##
 # models
-m = lm(pathdev ~ abs(peakPS) * PSO, dt.join)
+m = lm(pathdev ~ peakPSmean + peakPSmedian + peakPSmax + PSO, dt.join)
 summary(m)
-# the interaction is n.s.
+# F-statistic: 3.251 on 4 and 110 DF,  p-value: 0.0146
 step = stepAIC(m)
 step$anova
 # Final Model:
-# pathdev ~ abs(peakPS) + PSO
+# pathdev ~ peakPSmax + PSO
 
-m0 = lm(pathdev ~ abs(peakPS) + PSO, dt.join)
+m0 = lm(pathdev ~ peakPSmean + PSO, dt.join)
 summary(m0)
-# abs(peakPS)   -1.992      0.976  -2.041   0.0413 *
-# PSO          165.380     16.132  10.252   <2e-16 ***
-# Adjusted R-squared:  0.03544
+# peakPSmean    -37.64      22.29  -1.689   0.0941 .
+# PSO           193.98      77.06   2.517   0.0132 *
