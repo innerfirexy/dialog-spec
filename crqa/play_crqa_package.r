@@ -17,7 +17,7 @@ PCC = .2
 PSS = .2
 PSC = .25
 
-ts_len = 1000
+ts_len = 2000
 
 
 ###
@@ -63,8 +63,87 @@ dt.ccf = dt.ts[, {
         .(ccf = ccfs, lag = seq(-5, 5, 1))
     }, by = .(group, trial)]
 # plot
-p = ggplot(dt.ccf, aes(x = lag, y = ccf, group = group)) +
+p = ggplot(dt.ccf, aes(x = lag, y = ccf)) +
     geom_smooth(method='loess', aes(color = group))
 
 
 ####
+# replicate the cross-recurrence plots (CRPs) (Figure 4), and Figure 5
+# high condition
+tsC_hi = dt.ts[trial==1 & group == 'high', tsC]
+tsS_hi = dt.ts[trial==1 & group == 'high', tsS]
+
+res.hi = crqa(tsC_hi, tsS_hi, delay=1, embed=1, rescale=0, radius=0, normalize=0, mindiagline=2, minvertline=1)
+crp.hi = res.hi$RP # a 2000 by 2000 matrix
+
+dt.crp.hi = data.table(which(crp.hi == T, arr.ind = T))
+setnames(dt.crp.hi, c('tsC', 'tsS'))
+
+p.hi = ggplot(dt.crp.hi, aes(x = tsC, y = tsS)) + geom_point(size=.1)
+
+pdf('crp_demo_hi.pdf', 10, 10)
+plot(p.hi)
+dev.off()
+
+# low condition
+tsC_lo = dt.ts[trial==1 & group == 'low', tsC]
+tsS_lo = dt.ts[trial==1 & group == 'low', tsS]
+
+res.lo = crqa(tsC_lo, tsS_lo, delay=1, embed=1, rescale=0, radius=0, normalize=0, mindiagline=2, minvertline=1)
+crp.lo = res.lo$RP # a 2000 by 2000 matrix
+
+dt.crp.lo = data.table(which(crp.lo == T, arr.ind = T))
+setnames(dt.crp.lo, c('tsC', 'tsS'))
+
+p.lo = ggplot(dt.crp.lo, aes(x = tsC, y = tsS)) + geom_point(size=.1)
+
+pdf('crp_demo_lo.pdf', 10, 10)
+plot(p.lo)
+dev.off()
+
+
+##
+# Figure 5, diagonal-wise recurrence rate (RR)
+
+# params for crqa
+delay = 1; embed = 1; rescale = 1; radius = 0.001;
+normalize = 0; mindiagline = 2; minvertline = 2;
+tw = 0; whiteline = FALSE; recpt = FALSE; side = "both";
+checkl = list(do = FALSE, thrshd = 3, datatype = "categorical", pad = TRUE)
+
+dt.RR = dt.ts[, {
+        maxlag = 5
+        # res = calcphi(tsC, tsS, ws = maxlag, 0) # only calculate state 1
+        .(RR = res, lag = seq(-maxlag, maxlag, 1))
+    }, by = .(group, trial)]
+
+# plot
+p = ggplot(dt.RR, aes(x = lag, y = RR)) +
+    stat_smooth(aes(color = group), method='loess') +
+    scale_x_continuous(breaks = seq(-5, 5, 1))
+
+
+# summary(lm(RR ~ group, dt.RR))
+
+
+##
+# try drpdfromts
+res = drpdfromts(tsC_hi, tsS_hi, ws=5, datatype='categorical', radius=.001)
+res = drpdfromts(tsC_lo, tsS_lo, ws=5, datatype='categorical', radius=.001)
+
+par = list(datatype='categorical', thrshd=10, lags=seq(1, 5, 1))
+res = CTcrqa(tsC_hi, tsS_hi, par)
+
+# calcphi
+res = calcphi(tsC_hi, tsS_hi, 2, 1)
+res = calcphi(tsC_hi, tsS_hi, 2, 0)
+
+res = calcphi(tsC_lo, tsS_lo, 2, 1)
+res = calcphi(tsC_lo, tsS_lo, 2, 0)
+
+
+##
+# try runcrqa
+par = list(type = 1, ws = 5, method = "profile", datatype = "categorical", thrshd = 8, radius = .001, pad = FALSE)
+res1 = runcrqa(tsC_hi, tsS_hi, par)
+res2 = runcrqa(tsC_lo, tsS_lo, par)
