@@ -114,7 +114,9 @@ checkl = list(do = FALSE, thrshd = 3, datatype = "categorical", pad = TRUE)
 dt.RR = dt.ts[, {
         maxlag = 5
         # res = calcphi(tsC, tsS, ws = maxlag, 0) # only calculate state 1
-        .(RR = res, lag = seq(-maxlag, maxlag, 1))
+        # res = drpdfromts(tsC, tsS, ws=maxlag, datatype='categorical', radius=.001)
+        res = crqa(tsC, tsS, delay, embed, rescale, radius, normalize, mindiagline, minvertline, tw, whiteline, recpt, side, checkl)
+        .(RR = res$profile, lag = seq(-maxlag, maxlag, 1))
     }, by = .(group, trial)]
 
 # plot
@@ -131,7 +133,7 @@ p = ggplot(dt.RR, aes(x = lag, y = RR)) +
 res = drpdfromts(tsC_hi, tsS_hi, ws=5, datatype='categorical', radius=.001)
 res = drpdfromts(tsC_lo, tsS_lo, ws=5, datatype='categorical', radius=.001)
 
-par = list(datatype='categorical', thrshd=10, lags=seq(1, 5, 1))
+par = list(datatype='categorical', thrshd=0, lags=seq(1, 5, 1))
 res = CTcrqa(tsC_hi, tsS_hi, par)
 
 # calcphi
@@ -147,3 +149,49 @@ res = calcphi(tsC_lo, tsS_lo, 2, 0)
 par = list(type = 1, ws = 5, method = "profile", datatype = "categorical", thrshd = 8, radius = .001, pad = FALSE)
 res1 = runcrqa(tsC_hi, tsS_hi, par)
 res2 = runcrqa(tsC_lo, tsS_lo, par)
+
+
+###
+# try with artificial ts
+tsC_art_hi = c(0,1,0,1,0,1,0,1,0,1)
+tsS_art_hi = c(0,0,1,0,1,0,1,0,1,0)
+
+res1 = drpdfromts(tsC_art_hi, tsS_art_hi, ws=5, datatype='categorical', radius=.001)
+
+tsC_art_lo = c(0,0,1,0,0,1,0,0,1,0)
+tsS_art_lo = c(0,0,0,1,0,0,1,0,0,0)
+
+res2 = drpdfromts(tsC_art_lo, tsS_art_lo, ws=5, datatype='categorical', radius=.001)
+
+
+###
+# experiment
+PC_lo = .01
+PC_hi = .25
+
+PS = .01
+PCC = .1
+PSS = .1
+PSC = .15
+ts_len = 100
+
+TS = simts(PC_lo, PS, PCC, PSS, PSC, ts_len)
+TS = matrix(rep(0, 20), nrow=2)
+tsC = TS[1,]
+tsS = TS[2,]
+res = drpdfromts(tsC, tsS, ws=5, datatype='categorical', radius=0)
+res$profile
+
+delay = 0
+res0 = crqa(tsC, tsS, delay, embed, rescale, radius, normalize, mindiagline, minvertline, tw, whiteline, recpt, side, checkl)
+
+delay = 1
+res1 = crqa(tsC, tsS, delay, embed, rescale, radius, normalize, mindiagline, minvertline, tw, whiteline, recpt, side, checkl)
+
+
+
+TS = simts(PC_hi, PS, PCC, PSS, PSC, ts_len)
+tsC = TS[1,]
+tsS = TS[2,]
+res = drpdfromts(tsC, tsS, ws=5, datatype='categorical', radius=.001)
+res$profile
