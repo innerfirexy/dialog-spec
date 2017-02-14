@@ -128,70 +128,13 @@ p = ggplot(dt.RR, aes(x = lag, y = RR)) +
 # summary(lm(RR ~ group, dt.RR))
 
 
-##
-# try drpdfromts
-res = drpdfromts(tsC_hi, tsS_hi, ws=5, datatype='categorical', radius=.001)
-res = drpdfromts(tsC_lo, tsS_lo, ws=5, datatype='categorical', radius=.001)
-
-par = list(datatype='categorical', thrshd=0, lags=seq(1, 5, 1))
-res = CTcrqa(tsC_hi, tsS_hi, par)
-
-# calcphi
-res = calcphi(tsC_hi, tsS_hi, 2, 1)
-res = calcphi(tsC_hi, tsS_hi, 2, 0)
-
-res = calcphi(tsC_lo, tsS_lo, 2, 1)
-res = calcphi(tsC_lo, tsS_lo, 2, 0)
-
-
-##
-# try runcrqa
-par = list(type = 1, ws = 5, method = "profile", datatype = "categorical", thrshd = 8, radius = .001, pad = FALSE)
-res1 = runcrqa(tsC_hi, tsS_hi, par)
-res2 = runcrqa(tsC_lo, tsS_lo, par)
-
-
-###
-# try with artificial ts
-tsC_art_hi = c(0,1,0,1,0,1,0,1,0,1)
-tsS_art_hi = c(0,0,1,0,1,0,1,0,1,0)
-
-res1 = drpdfromts(tsC_art_hi, tsS_art_hi, ws=5, datatype='categorical', radius=.001)
-
-tsC_art_lo = c(0,0,1,0,0,1,0,0,1,0)
-tsS_art_lo = c(0,0,0,1,0,0,1,0,0,0)
-
-res2 = drpdfromts(tsC_art_lo, tsS_art_lo, ws=5, datatype='categorical', radius=.001)
-
-
-###
-# experiment
-PC_lo = .01
-PC_hi = .25
-
-PS = .01
-PCC = .1
-PSS = .1
-PSC = .15
-ts_len = 100
-
-TS = simts(PC_lo, PS, PCC, PSS, PSC, ts_len)
-TS = matrix(rep(0, 20), nrow=2)
-tsC = TS[1,]
-tsS = TS[2,]
-res = drpdfromts(tsC, tsS, ws=5, datatype='categorical', radius=0)
+####
+# Try Coco's advice
+ts1 = c(rep(2,8),1,1,rep(2,10))
+ts2 = c(rep(3,9),1,1,rep(3,9))
+res = drpdfromts(ts1, ts2, ws=5, datatype='categorical', radius=0)
+#
+# nice! It works!
+# Looks like we need to code non-events to different elements for different series
 res$profile
-
-delay = 0
-res0 = crqa(tsC, tsS, delay, embed, rescale, radius, normalize, mindiagline, minvertline, tw, whiteline, recpt, side, checkl)
-
-delay = 1
-res1 = crqa(tsC, tsS, delay, embed, rescale, radius, normalize, mindiagline, minvertline, tw, whiteline, recpt, side, checkl)
-
-
-
-TS = simts(PC_hi, PS, PCC, PSS, PSC, ts_len)
-tsC = TS[1,]
-tsS = TS[2,]
-res = drpdfromts(tsC, tsS, ws=5, datatype='categorical', radius=.001)
-res$profile
+# 0.00000000 0.00000000 0.00000000 0.05555556 0.10526316 0.05000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
