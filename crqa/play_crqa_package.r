@@ -113,9 +113,14 @@ checkl = list(do = FALSE, thrshd = 3, datatype = "categorical", pad = TRUE)
 
 dt.RR = dt.ts[, {
         maxlag = 5
-        # res = calcphi(tsC, tsS, ws = maxlag, 0) # only calculate state 1
         # res = drpdfromts(tsC, tsS, ws=maxlag, datatype='categorical', radius=.001)
-        res = crqa(tsC, tsS, delay, embed, rescale, radius, normalize, mindiagline, minvertline, tw, whiteline, recpt, side, checkl)
+        # res = crqa(tsC, tsS, delay, embed, rescale, radius, normalize, mindiagline, minvertline, tw, whiteline, recpt, side, checkl)
+        # modify the symbols for non-events
+        ts1 = tsC
+        ts1[which(ts1==0)] = 2
+        ts2 = tsS
+        ts2[which(ts2==0)] = 3
+        res = drpdfromts(ts1, ts2, ws=maxlag, datatype='categorical', radius=.001)
         .(RR = res$profile, lag = seq(-maxlag, maxlag, 1))
     }, by = .(group, trial)]
 
