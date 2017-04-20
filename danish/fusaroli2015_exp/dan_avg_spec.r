@@ -11,7 +11,9 @@ library(lmerTest)
 
 # read data
 dt = fread('data/all_pairs_entropy.txt')
-setnames(dt, c('pairId', 'who', 'ent'))
+# dt = fread('data/all_pairs_entropy_new.txt') # don't bother using the new data, it looks worse
+dt = dt[!is.na(ent)]
+
 setkey(dt, pairId, who)
 
 
@@ -163,7 +165,7 @@ summary(m)
 #####
 # plot actual spectrum and white noise baseline together
 dt.plot1 = dt.spec[, .(spec, freq)]
-dt.plot1$Type = 'Actual data'
+dt.plot1$Type = 'Real data'
 dt.plot2 = dt.rnorm.spec[, .(spec, freq)]
 dt.plot2$Type = 'White noise'
 dt.plot = rbindlist(list(dt.plot1, dt.plot2))
@@ -183,8 +185,7 @@ dev.off()
 # Autocorrelation analysis
 
 # ac for real data
-dt = fread('data/all_pairs_entropy.txt')
-setnames(dt, c('pairId', 'who', 'ent'))
+dt = fread('data/all_pairs_entropy_new.txt')
 setkey(dt, pairId, who)
 
 dt.ac = dt[, {
@@ -225,3 +226,20 @@ p = ggplot(dt.ac.plot, aes(x = lag, y = ac)) +
 pdf('plots/ac_DJD.pdf', 4, 4)
 plot(p)
 dev.off()
+
+
+##
+# Ljung-Box test
+dt = fread('data/all_pairs_entropy_new.txt')
+setkey(dt, pairId, who)
+
+dt.LB = dt[, {
+        testres = Box.test(ent, type='Ljung-Box', lag=log(.N))
+        .(pvalue = testres$p.value)
+    }, by = .(pairId, who)]
+summary(dt.LB$pvalue)
+#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+#  0.0428  0.2735  0.4163  0.4930  0.7481  0.9954
+
+
+Box.test(dt$ent, type='Ljung-Box')

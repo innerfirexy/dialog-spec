@@ -122,7 +122,7 @@ dt.DJD.spec = dt.DJD[, {
 dt = readRDS('map.dt.ent_swbd.rds')
 
 dt.LB = dt[, {
-        testres = Box.test(ent_swbd, type='Ljung-Box', lag=log(.N))
+        testres = Box.test(ent_swbd, type='Ljung-Box')
         .(pvalue = testres$p.value)
     }, by = .(observation, who)]
 summary(dt.LB)

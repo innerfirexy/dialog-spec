@@ -9,7 +9,7 @@ library(ggplot2)
 
 # read data
 dt = fread('data/all_pairs_entropy.txt')
-setnames(dt, c('pairId', 'who', 'ent'))
+# dt = fread('data/all_pairs_entropy_new.txt')
 setkey(dt, pairId, who)
 
 # read performance data
