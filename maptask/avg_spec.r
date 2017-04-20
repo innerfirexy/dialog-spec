@@ -14,7 +14,7 @@ dt.spec = dt[, {
         spec = spectrum(ent_swbd, taper=0, log='no', plot=F, method='pgram')
         .(spec = spec$spec, freq = spec$freq)
     }, by = .(observation, who)]
-freq.base = sort(unique(dt.avg$freq))
+freq.base = sort(unique(dt.spec$freq))
 
 # interpolation
 dt.intpl = dt.spec[, {
@@ -114,3 +114,76 @@ dt.DJD.spec = dt.DJD[, {
         spec = spectrum(ent, taper=0, log='no', plot=F, method='pgram', spans=c(7,7))
         .(spec = spec$spec, freq = spec$freq)
     }, by = .(pairId, who)]
+
+
+
+######
+# Test for the difference from white noise
+dt = readRDS('map.dt.ent_swbd.rds')
+
+dt.LB = dt[, {
+        testres = Box.test(ent_swbd, type='Ljung-Box', lag=log(.N))
+        .(pvalue = testres$p.value)
+    }, by = .(observation, who)]
+summary(dt.LB)
+
+
+dt.BP = dt[, {
+        testres = Box.test(ent_swbd, type='Box-Pierce')
+        .(pvalue = testres$p.value)
+    }, by = .(observation, who)]
+
+#
+# play
+Box.test(rnorm(100,0,1), type='Ljung-Box') # p > .05
+Box.test(seq(1,100), type='Ljung-Box') # p<.001
+
+
+##
+# autocorrelation
+dt = readRDS('map.dt.ent_swbd.rds')
+dt.ac = dt[, {
+        acfres = acf(ent_swbd, plot=F, lag.max=10)
+        .(ac = as.numeric(acfres$acf), lag = as.numeric(acfres$lag))
+    }, by = .(observation, who)]
+
+p1 = ggplot(dt.ac[lag>0 & lag<=5], aes(x = lag, y = ac)) +
+    stat_summary(fun.data=mean_cl_boot, geom='errorbar')
+
+
+# ac for white noise
+len.mean = floor(mean(dt[, .N, by = .(observation, who)]$N)) # 105
+ent_swbd.mean = mean(dt$ent_swbd)
+ent_swbd.sd = sd(dt$ent_swbd)
+
+dt.rnorm = data.table()
+for (i in 1:100) {
+    set.seed(i)
+    tmp = data.table(sid = i, s = rnorm(len.mean, mean = ent_swbd.mean, sd = ent_swbd.sd))
+    dt.rnorm = rbindlist(list(dt.rnorm, tmp))
+}
+
+dt.rnorm.ac = dt.rnorm[, {
+        acfres = acf(s, plot=F, lag.max=10)
+        .(ac = as.numeric(acfres$acf), lag = as.numeric(acfres$lag))
+    }, keyby = sid]
+p2 = ggplot(dt.rnorm.ac[lag>0 & lag<=5], aes(x = lag, y = ac)) +
+    stat_summary(fun.data=mean_cl_boot, geom='errorbar')
+
+# plot the ac of real data and white noise together
+dt.tmp1 = dt.ac[lag>0&lag<=5, {.(sid=.GRP, ac=ac, lag=lag)}, by = .(observation, who)][,3:5]
+dt.tmp1[, Type:='Real data']
+dt.tmp2 = dt.rnorm.ac[lag>0 & lag<=5]
+dt.tmp2[, Type:='White noise']
+dt.ac.plot = rbindlist(list(dt.tmp1, dt.tmp2))
+
+p = ggplot(dt.ac.plot, aes(x = lag, y = ac)) +
+    stat_summary(fun.y=mean, geom='point', position=position_dodge(width=.2), size=2.5, aes(shape=Type, color=Type)) +
+    stat_summary(fun.data=mean_cl_boot, geom='errorbar', width=.3, size=.8, position=position_dodge(width=.2), aes(color=Type)) +
+    # scale_linetype_manual(values=c('solid', 'dashed')) +
+    geom_hline(yintercept=0, lty='longdash', size=.8) +
+    labs(y='Autocorrelation score', x='Lag') +
+    theme_light() + theme(legend.position=c(.8,.2))
+pdf('plots/ac_MapTask.pdf', 4, 4)
+plot(p)
+dev.off()

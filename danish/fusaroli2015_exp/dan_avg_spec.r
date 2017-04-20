@@ -176,3 +176,52 @@ p = ggplot(dt.plot, aes(x=freq, y=spec, group=Type)) +
 pdf('plots/average_spectrum_DJD.pdf', 3, 3)
 plot(p)
 dev.off()
+
+
+
+##
+# Autocorrelation analysis
+
+# ac for real data
+dt = fread('data/all_pairs_entropy.txt')
+setnames(dt, c('pairId', 'who', 'ent'))
+setkey(dt, pairId, who)
+
+dt.ac = dt[, {
+        acfres = acf(ent, plot=F, lag.max=10)
+        .(ac = as.numeric(acfres$acf), lag = as.numeric(acfres$lag))
+    }, by = .(pairId, who)]
+
+# ac for white noise
+len.mean = floor(mean(dt[, .N, by = .(pairId, who)]$N)) # 346
+ent.mean = mean(dt$ent) # 2.42
+ent.sd = sd(dt$ent) # .56
+
+dt.rnorm = data.table()
+for (i in 1:100) {
+    set.seed(i)
+    tmp = data.table(sid = i, s = rnorm(len.mean, mean = ent.mean, sd = ent.sd))
+    dt.rnorm = rbindlist(list(dt.rnorm, tmp))
+}
+dt.rnorm.ac = dt.rnorm[, {
+        acfres = acf(s, plot=F, lag.max=10)
+        .(ac = as.numeric(acfres$acf), lag = as.numeric(acfres$lag))
+    }, keyby = sid]
+
+# plot the ac of real data and white noise together
+dt.tmp1 = dt.ac[lag>0&lag<=10, {.(sid=.GRP, ac=ac, lag=lag)}, by = .(pairId, who)][,3:5]
+dt.tmp1[, Type:='Real data']
+dt.tmp2 = dt.rnorm.ac[lag>0 & lag<=10]
+dt.tmp2[, Type:='White noise']
+dt.ac.plot = rbindlist(list(dt.tmp1, dt.tmp2))
+
+p = ggplot(dt.ac.plot, aes(x = lag, y = ac)) +
+    stat_summary(fun.y=mean, geom='point', position=position_dodge(width=.2), size=2.5, aes(shape=Type, color=Type)) +
+    stat_summary(fun.data=mean_cl_boot, geom='errorbar', width=.3, size=.8, position=position_dodge(width=.2), aes(color=Type)) +
+    # scale_linetype_manual(values=c('solid', 'dashed')) +
+    geom_hline(yintercept=0, lty='longdash', size=.8) +
+    labs(y='Autocorrelation score', x='Lag') +
+    theme_light() + theme(legend.position=c(.8,.2))
+pdf('plots/ac_DJD.pdf', 4, 4)
+plot(p)
+dev.off()
