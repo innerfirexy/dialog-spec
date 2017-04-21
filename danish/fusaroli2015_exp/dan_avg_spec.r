@@ -230,16 +230,20 @@ dev.off()
 
 ##
 # Ljung-Box test
-dt = fread('data/all_pairs_entropy_new.txt')
-setkey(dt, pairId, who)
-
+dt = fread('data/all_pairs_entropy.txt')
 dt.LB = dt[, {
-        testres = Box.test(ent, type='Ljung-Box', lag=log(.N))
-        .(pvalue = testres$p.value)
-    }, by = .(pairId, who)]
+        # do the test many times
+        pvals = c()
+        for (h in 1:floor(log(.N))) {
+            p = Box.test(ent, type='Ljung-Box', lag=h)$p.value
+            pvals = c(pvals, p)
+        }
+        # testres = Box.test(ent, type='Ljung-Box', lag=log(.N))
+        .(pvalue = min(pvals))
+    }, keyby = .(pairId, who)]
 summary(dt.LB$pvalue)
-#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
-#  0.0428  0.2735  0.4163  0.4930  0.7481  0.9954
-
+#     Min.  1st Qu.   Median     Mean  3rd Qu.     Max.
+# 0.004632 0.136500 0.255700 0.268900 0.352300 0.856100
+plot(density(dt.LB$pvalue))
 
 Box.test(dt$ent, type='Ljung-Box')

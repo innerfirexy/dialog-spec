@@ -122,10 +122,20 @@ dt.DJD.spec = dt.DJD[, {
 dt = readRDS('map.dt.ent_swbd.rds')
 
 dt.LB = dt[, {
-        testres = Box.test(ent_swbd, type='Ljung-Box')
-        .(pvalue = testres$p.value)
+        # do the test many times
+        pvals = c()
+        for (h in 1:floor(log(.N))) {
+            p = Box.test(ent_swbd, type='Ljung-Box', lag=h)$p.value
+            pvals = c(pvals, p)
+        }
+        .(pvalue = min(pvals))
+        # testres = Box.test(ent_swbd, type='Ljung-Box')
+        # .(pvalue = testres$p.value)
     }, by = .(observation, who)]
-summary(dt.LB)
+summary(dt.LB$pvalue)
+#      Min.   1st Qu.    Median      Mean   3rd Qu.      Max.
+# 0.0000684 0.0354000 0.1370000 0.2300000 0.3694000 0.8945000
+plot(density(dt.LB$pvalue))
 
 
 dt.BP = dt[, {
