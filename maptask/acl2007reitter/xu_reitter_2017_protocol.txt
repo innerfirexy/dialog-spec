@@ -1,0 +1,39 @@
+> all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time + PSO * (peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+[1] 0.2531205
+> 
+all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time + PSO ), x.new, 'test',  folds=10, cv=commoncv3.new)
+
+> all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time + PSO ), x.new, 'test',  folds=10, cv=commoncv3.new)
+[1] 0.04395068
+> 
+all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time), x.new, 'test',  folds=10, cv=commoncv3.new)
+
+> all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time), x.new, 'test',  folds=10, cv=commoncv3.new)
+[1] 0.1771357
+> 
+all1.new <- crossval(quote(score ~ word.total * letter.total * time), x.new, 'test',  folds=10, cv=commoncv3.new)
+
+> all1.new <- crossval(quote(score ~ word.total * letter.total * time), x.new, 'test',  folds=10, cv=commoncv3.new)
+[1] 0.1260119
+> 
+all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time + PSO*time + time*(peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+
+> all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time + PSO*time + time*(peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+[1] 0.2826416
+> 
+all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time + PSO*time*(peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+
+> all1.new <- crossval(quote(score ~ word.reps * letter.reps * rule.reps * word.total * letter.total * time + PSO*time*(peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+[1] 0.2435047
+> 
+> 
+all1.new <- crossval(quote(score ~ word.total * letter.total * time + PSO*time*(peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+
+> all1.new <- crossval(quote(score ~ word.total * letter.total * time + PSO*time*(peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+[1] 0.2493735
+> 
+all1.new <- crossval(quote(score ~ word.total * letter.total * time + PSO*time+time*(peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+
+> all1.new <- crossval(quote(score ~ word.total * letter.total * time + PSO*time+time*(peakPSmean + peakPSmedian + peakPSmax)), x.new, 'test',  folds=10, cv=commoncv3.new)
+[1] 0.2884209
+> 
