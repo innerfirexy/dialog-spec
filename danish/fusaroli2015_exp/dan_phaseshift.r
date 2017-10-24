@@ -65,6 +65,7 @@ dt.peakPS = dt.peakPS[dt.pf, nomatch=0]
 
 ###
 # models
+# This model is invalid
 m = lm(CollectivePerformance ~ abs(peakPS), dt.peakPS)
 summary(m)
 # abs(peakPS)  0.07093    0.03302   2.148   0.0319 *

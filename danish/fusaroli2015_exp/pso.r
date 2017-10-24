@@ -51,6 +51,10 @@ dt.pso = dt.spec[, {
 
 dt.pso = dt.pso[dt.pf, nomatch=0]
 
+# models
+m = lm(CollectivePerformance ~ PSO, dt.pso)
+summary(m)
+
 
 ###
 # examine correlation
