@@ -3,6 +3,7 @@
 refs/
 .Rapp.history
 */__pycache__
+*.swp
 .DS_Store
 
 maptask/model-data/

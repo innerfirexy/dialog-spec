@@ -141,5 +141,7 @@ res = drpdfromts(ts1, ts2, ws=5, datatype='categorical', radius=0)
 #
 # nice! It works!
 # Looks like we need to code non-events to different elements for different series
+# 2s in ts1 and 3s in ts2 are treated as non-events
+
 res$profile
 # 0.00000000 0.00000000 0.00000000 0.05555556 0.10526316 0.05000000 0.00000000 0.00000000 0.00000000 0.00000000 0.00000000
